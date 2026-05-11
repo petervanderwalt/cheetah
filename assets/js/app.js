@@ -160,24 +160,63 @@
     e.target.value = '';
   });
 
+  // Admonition picker toggle
+  const picker = document.getElementById('admonitionPicker');
+  document.getElementById('btnAdmonition').addEventListener('click', () => {
+    picker.style.display = picker.style.display === 'none' ? '' : 'none';
+  });
+  document.querySelectorAll('.tb-pick').forEach(el => {
+    el.addEventListener('click', () => {
+      const kind = el.dataset.kind;
+      const icons = { note: '📝', tip: '💡', warning: '⚠️', danger: '🔥', info: 'ℹ️' };
+      const label = kind.charAt(0).toUpperCase() + kind.slice(1);
+      const lines = `> ${icons[kind]} **${label}**\n> Content here\n`;
+      editor.insertAtCursor(lines);
+      picker.style.display = 'none';
+    });
+    el.addEventListener('mouseenter', () => el.style.background = 'var(--bg-hover, #eeedf0)');
+    el.addEventListener('mouseleave', () => el.style.background = '');
+  });
+  // Close picker on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#admonitionWrap')) picker.style.display = 'none';
+  });
+
   function handleToolbar(cmd) {
     if (!editor.currentFile) return;
     const ta = document.getElementById('editorTextarea');
-    const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start, end);
+    const lineStart = ta.value.lastIndexOf('\n', start - 1) + 1;
+    const curLine = ta.value.substring(lineStart, ta.value.indexOf('\n', lineStart) >= 0 ? ta.value.indexOf('\n', lineStart) : ta.value.length);
     let insert = '';
+
     switch (cmd) {
       case 'bold': insert = sel ? `**${sel}**` : '**bold text**'; break;
       case 'italic': insert = sel ? `*${sel}*` : '*italic text*'; break;
-      case 'heading': insert = sel ? `## ${sel}` : '## Heading'; break;
-      case 'link':
+      case 'strike': insert = sel ? `~~${sel}~~` : '~~strikethrough~~'; break;
+      case 'code-inline': insert = sel ? `\`${sel}\`` : '`code`'; break;
+      case 'h1': insert = `\n# Heading\n`; break;
+      case 'h2': insert = `\n## Heading\n`; break;
+      case 'h3': insert = `\n### Heading\n`; break;
+      case 'ul': insert = `\n- Item\n- Item\n`; break;
+      case 'ol': insert = `\n1. Item\n2. Item\n`; break;
+      case 'blockquote': insert = `\n> Blockquote\n`; break;
+      case 'code-fence': insert = `\n\`\`\`\ncode\n\`\`\`\n`; break;
+      case 'hr': insert = `\n---\n`; break;
+      case 'table':
+        insert = '\n| Header | Header |\n|--------|--------|\n| Cell   | Cell   |\n';
+        break;
+      case 'link': {
         const url = prompt('Enter URL:');
         if (!url) return;
         insert = sel ? `[${sel}](${url})` : `[link text](${url})`;
         break;
+      }
       case 'image':
         document.getElementById('imageInput').click();
         return;
-      case 'video':
+      case 'video': {
         const vurl = prompt('Enter YouTube or Vimeo URL:');
         if (!vurl) return;
         const yt = vurl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -186,12 +225,17 @@
         else if (vim) insert = `<iframe src="https://player.vimeo.com/video/${vim[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe>\n`;
         else { alert('Could not recognize URL. Use YouTube or Vimeo.'); return; }
         break;
+      }
     }
     if (insert) editor.insertAtCursor(insert);
   }
 
   document.querySelectorAll('.tb-btn').forEach(btn => {
-    btn.addEventListener('click', () => handleToolbar(btn.dataset.cmd));
+    btn.addEventListener('click', (e) => {
+      // Don't handle the admonition button here (separate handler)
+      if (btn.id === 'btnAdmonition') return;
+      handleToolbar(btn.dataset.cmd);
+    });
   });
 
   document.addEventListener('keydown', (e) => {

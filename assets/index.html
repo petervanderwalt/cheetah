@@ -24,9 +24,32 @@
     <div class="editor-toolbar" id="editorToolbar">
       <button class="tb-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
       <button class="tb-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-      <button class="tb-btn" data-cmd="heading" title="Heading">H</button>
-      <button class="tb-btn" data-cmd="link" title="Link">&#x1f517;</button>
+      <button class="tb-btn" data-cmd="strike" title="Strikethrough"><s>S</s></button>
+      <button class="tb-btn" data-cmd="code-inline" title="Inline code">&lt;/&gt;</button>
       <span class="tb-sep"></span>
+      <button class="tb-btn" data-cmd="h1" title="Heading 1">H1</button>
+      <button class="tb-btn" data-cmd="h2" title="Heading 2">H2</button>
+      <button class="tb-btn" data-cmd="h3" title="Heading 3">H3</button>
+      <span class="tb-sep"></span>
+      <button class="tb-btn" data-cmd="ul" title="Bullet list">&#x2022;</button>
+      <button class="tb-btn" data-cmd="ol" title="Numbered list">1.</button>
+      <button class="tb-btn" data-cmd="blockquote" title="Blockquote">&gt;</button>
+      <button class="tb-btn" data-cmd="code-fence" title="Code block">&lt;/&gt;<sub style="font-size:0.6em">+</sub></button>
+      <button class="tb-btn" data-cmd="hr" title="Horizontal rule">&#x2014;</button>
+      <button class="tb-btn" data-cmd="table" title="Insert table">&#x2596;</button>
+      <span class="tb-sep"></span>
+      <div style="position:relative;display:inline-block" id="admonitionWrap">
+        <button class="tb-btn" id="btnAdmonition" title="Insert callout">&#x1f4dd; &#x25BC;</button>
+        <div id="admonitionPicker" style="display:none;position:absolute;top:100%;left:0;background:var(--bg-alt,#f5f4f6);border:1px solid var(--border,#ddd8dc);border-radius:6px;z-index:100;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.12);font-size:0.8rem">
+          <div class="tb-pick" data-kind="note" style="padding:6px 16px;cursor:pointer;transition:background 0.1s">&#x1f4dd; Note</div>
+          <div class="tb-pick" data-kind="tip" style="padding:6px 16px;cursor:pointer;transition:background 0.1s">&#x1f4a1; Tip</div>
+          <div class="tb-pick" data-kind="warning" style="padding:6px 16px;cursor:pointer;transition:background 0.1s">&#x26a0;&#xfe0f; Warning</div>
+          <div class="tb-pick" data-kind="danger" style="padding:6px 16px;cursor:pointer;transition:background 0.1s">&#x1f525; Danger</div>
+          <div class="tb-pick" data-kind="info" style="padding:6px 16px;cursor:pointer;transition:background 0.1s">&#x2139;&#xfe0f; Info</div>
+        </div>
+      </div>
+      <span class="tb-sep"></span>
+      <button class="tb-btn" data-cmd="link" title="Link">&#x1f517;</button>
       <button class="tb-btn" data-cmd="image" title="Insert image">&#x1f5bc;</button>
       <button class="tb-btn" data-cmd="video" title="Insert video embed">&#x1f3ac;</button>
     </div>

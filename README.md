@@ -100,14 +100,16 @@ This means:
 - **Offline-first** — works without internet
 
 The editor gives you:
-- A file tree
-- A Markdown source pane with syntax highlighting
+- A file tree (click to open, +Page/+Folder to create)
+- A Markdown source pane with syntax highlighting (overlay technique)
 - A live rendered preview pane that updates as you type
-- Double-click any rendered block to edit it in WYSIWYG mode
-- Drag-and-drop images
-- Formatting toolbar (Bold, Italic, Heading, Link, Image, Video)
-- Create new pages and sections with ordering
-- Keyboard shortcuts
+- **WYSIWYG block editing** — double-click any rendered block to edit inline, markdown updates in real-time
+- **Full formatting toolbar** — Bold, Italic, Heading, Link, Inline Code, Fenced Code, Blockquote, Bullet List, Numbered List, Horizontal Rule, Table, Admonitions (Note/Tip/Warning/Danger/Info), Image upload, Video embed
+- Drag-and-drop images (auto-upload to `content/assets/img/`)
+- Create new pages and sections with ordering (frontmatter `order:` field)
+- Wiki links `[[Page Name]]` resolved by title, filename, or path
+- Autosave, keyboard shortcuts (Ctrl+S, Tab to indent, Ctrl+F for find)
+- File watching — external edits auto-refresh
 
 The build gives you:
 - Static HTML pages with navigation
@@ -122,25 +124,32 @@ The build gives you:
 ## Project structure
 
 ```
-docs/
-├── 01-Getting-Started/     # Your content (numbered for ordering)
-├── assets/                 # Editor frontend
+docs/                       # Project root
+├── content/                # Your documentation — .md files + images
+│   ├── 01-Getting-Started/
+│   ├── 02-Core-Concepts/
+│   ├── ...
+│   ├── assets/img/          # Uploaded images (controllers/, etc.)
+│   └── troubleshooting.md
+├── assets/                 # Editor frontend (vanilla HTML/CSS/JS)
 │   ├── index.html
-│   ├── css/editor.css
-│   ├── css/highlight.css
-│   └── js/
-│       ├── app.js          # Main orchestrator
-│       ├── editor.js       # Textarea + syntax highlighting
-│       ├── filetree.js     # File tree
-│       ├── markdown-parser.js  # Marked + wiki links
-│       ├── preview.js      # Live preview
-│       └── ast-editor.js   # WYSIWYG block editing
+│   ├── css/
+│   ├── js/
+│   │   ├── app.js          # Main orchestrator
+│   │   ├── editor.js       # Textarea + syntax highlighting
+│   │   ├── filetree.js     # File tree
+│   │   ├── markdown-parser.js  # Marked + wiki links
+│   │   ├── preview.js      # Live preview
+│   │   └── ast-editor.js   # WYSIWYG block editing
+│   └── img/                # Editor UI assets (not content images)
 ├── tools/
-│   ├── edit-server.js      # Local Express server
-│   ├── build.js            # Static site generator
-│   └── convert-admonitions.js  # One-time ::-converter
-├── build/                  # Generated site
-└── package.json
+│   ├── edit-server.js      # Local Express server (port 3000)
+│   ├── build.js            # Static site generator → ./build
+│   ├── convert-admonitions.js  # One-time Docusaurus :::-to-blockquote converter
+│   └── fix-controller-images.js
+├── build/                  # Generated static site output
+├── package.json
+└── README.md
 ```
 
 ---
@@ -173,4 +182,4 @@ Built with
 
 ## License
 
-Do what you want. It's documentation.
+MIT
