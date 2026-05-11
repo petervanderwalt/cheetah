@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docs Editor</title>
+<link rel="stylesheet" href="assets/css/editor.css">
+<link rel="stylesheet" href="assets/css/highlight.css">
+</head>
+<body>
+<div class="app-header">
+  <span class="logo">&#x1f4dd; Docs Editor</span>
+  <span class="file-path" id="filePath">No file open</span>
+  <span class="status" id="status"></span>
+  <button class="btn" id="btnSave" title="Save (Ctrl+S)">Save</button>
+</div>
+<input type="file" id="imageInput" accept="image/*" style="display:none">
+<div class="app-body">
+  <div class="sidebar" id="sidebar">
+    <div class="file-tree" id="fileTree"></div>
+  </div>
+  <div class="editor-pane" id="editorPane">
+    <div class="editor-tabs" id="editorTabs"></div>
+    <div class="editor-toolbar" id="editorToolbar">
+      <button class="tb-btn" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+      <button class="tb-btn" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+      <button class="tb-btn" data-cmd="heading" title="Heading">H</button>
+      <button class="tb-btn" data-cmd="link" title="Link">&#x1f517;</button>
+      <span class="tb-sep"></span>
+      <button class="tb-btn" data-cmd="image" title="Insert image">&#x1f5bc;</button>
+      <button class="tb-btn" data-cmd="video" title="Insert video embed">&#x1f3ac;</button>
+    </div>
+    <div class="editor-wrapper" id="editorWrapper">
+      <div class="editor-highlight" id="editorHighlight"></div>
+      <textarea class="editor-textarea" id="editorTextarea" spellcheck="false" placeholder="Select a file to edit..."></textarea>
+    </div>
+  </div>
+  <div class="preview-pane" id="previewPane">
+    <div class="preview-header">Live Preview</div>
+    <div class="preview-content" id="previewContent">
+      <div class="empty-state">
+        <div class="icon">&#x1f4d6;</div>
+        <div class="text">Select a file to preview</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">New Page</div>
+    <div class="modal-body">
+      <label class="modal-label">Name</label>
+      <input class="modal-input" id="modalName" placeholder="Page or folder name" autofocus>
+      <label class="modal-label">Order (optional, numbers only)</label>
+      <input class="modal-input" id="modalOrder" type="number" min="1" step="1" placeholder="e.g. 5">
+      <div class="modal-hint" id="modalHint">Leave order empty for alphabetical sorting</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn btn-primary" id="modalConfirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/markdown-parser.js"></script>
+<script src="assets/js/filetree.js"></script>
+<script src="assets/js/editor.js"></script>
+<script src="assets/js/preview.js"></script>
+<script src="assets/js/ast-editor.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

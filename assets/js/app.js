@@ -1,0 +1,228 @@
+(function () {
+  let currentFilePath = null;
+
+  const parser = new MarkdownParser();
+  const editor = new Editor('editorTextarea', 'editorHighlight', 'status', 'filePath', 'editorTabs');
+  const preview = new Preview('previewContent', parser);
+  const fileTree = new FileTree('fileTree', onFileSelect, showNewModal);
+  const astEditor = new AstEditor(preview, editor);
+
+  let modalCallback = null;
+
+  editor.onChange = (md) => {
+    preview.update(md);
+  };
+
+  let scrollSyncing = false;
+  editor.onScroll = (pct) => {
+    if (scrollSyncing) return;
+    scrollSyncing = true;
+    preview.scrollToPct(pct);
+    requestAnimationFrame(() => { scrollSyncing = false; });
+  };
+  preview.onScroll = (pct) => {
+    if (scrollSyncing) return;
+    scrollSyncing = true;
+    editor.scrollToPct(pct);
+    requestAnimationFrame(() => { scrollSyncing = false; });
+  };
+
+  editor.onTabSelect = (path) => {
+    currentFilePath = path;
+    editor.open(path);
+  };
+
+  function onFileSelect(path) {
+    currentFilePath = path;
+    editor.open(path);
+  }
+
+  function showNewModal(type, parentDir) {
+    const overlay = document.getElementById('modalOverlay');
+    const title = document.getElementById('modalTitle');
+    const nameInput = document.getElementById('modalName');
+    const orderInput = document.getElementById('modalOrder');
+    const confirmBtn = document.getElementById('modalConfirm');
+    const cancelBtn = document.getElementById('modalCancel');
+    const hint = document.getElementById('modalHint');
+
+    title.textContent = type === 'page' ? 'New Page' : 'New Section/Folder';
+    hint.textContent = type === 'page'
+      ? 'Leave order empty for alphabetical sorting. The filename will be auto-generated from the name.'
+      : 'The folder will use the name as-is. Order controls sorting position.';
+    nameInput.value = '';
+    orderInput.value = '';
+    overlay.style.display = 'flex';
+    setTimeout(() => nameInput.focus(), 100);
+
+    modalCallback = async () => {
+      const name = nameInput.value.trim();
+      if (!name) { nameInput.focus(); return; }
+      const order = orderInput.value ? parseInt(orderInput.value, 10) : null;
+      overlay.style.display = 'none';
+
+      if (type === 'page') {
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const prefix = order != null ? String(order).padStart(2, '0') + '-' : '';
+        const filename = prefix + slug + '.md';
+        const filePath = parentDir ? `${parentDir}/${filename}` : filename;
+        try {
+          const res = await fetch('/api/create-file', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath, title: name, order })
+          });
+          if (!res.ok) { const err = await res.json(); alert(err.error || 'Failed'); return; }
+          fileTree.load().then(() => parser.setWikiLookup(fileTree.getWikiLookup()));
+          onFileSelect(filePath);
+        } catch (e) { alert('Failed to create file'); }
+      } else {
+        const prefix = order != null ? String(order).padStart(2, '0') + '-' : '';
+        const dirname = prefix + name;
+        const dirPath = parentDir ? `${parentDir}/${dirname}` : dirname;
+        try {
+          const res = await fetch('/api/create-folder', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: dirPath })
+          });
+          if (!res.ok) { const err = await res.json(); alert(err.error || 'Failed'); return; }
+          fileTree.load().then(() => parser.setWikiLookup(fileTree.getWikiLookup()));
+        } catch (e) { alert('Failed to create folder'); }
+      }
+    };
+
+    confirmBtn.onclick = modalCallback;
+    cancelBtn.onclick = () => { overlay.style.display = 'none'; };
+    nameInput.onkeydown = (e) => { if (e.key === 'Enter') modalCallback(); if (e.key === 'Escape') overlay.style.display = 'none'; };
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
+  }
+
+  fileTree.load().then(() => {
+    parser.setWikiLookup(fileTree.getWikiLookup());
+  });
+
+  let eventSource = null;
+  function connectSSE() {
+    try {
+      eventSource = new EventSource('/api/events');
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'filechange') {
+            if (data.event === 'change' && currentFilePath === data.path) {
+              editor.open(data.path);
+            }
+            fileTree.refreshFile(data.path);
+          }
+        } catch {}
+      };
+      eventSource.onerror = () => {
+        setTimeout(connectSSE, 3000);
+      };
+    } catch {}
+  }
+  connectSSE();
+
+  document.addEventListener('dragover', (e) => e.preventDefault());
+  document.addEventListener('drop', (e) => {
+    e.preventDefault();
+    handleDrop(e);
+  });
+
+  function handleDrop(e) {
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    for (const file of files) {
+      if (file.type.startsWith('image/')) uploadImage(file);
+    }
+  }
+
+  async function uploadImage(file) {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: file.name, data: base64 })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          editor.insertAtCursor(`![${file.name}](${data.url})`);
+        }
+      } catch (err) { console.warn('Upload failed:', err); }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  document.getElementById('imageInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) uploadImage(file);
+    e.target.value = '';
+  });
+
+  function handleToolbar(cmd) {
+    if (!editor.currentFile) return;
+    const ta = document.getElementById('editorTextarea');
+    const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd);
+    let insert = '';
+    switch (cmd) {
+      case 'bold': insert = sel ? `**${sel}**` : '**bold text**'; break;
+      case 'italic': insert = sel ? `*${sel}*` : '*italic text*'; break;
+      case 'heading': insert = sel ? `## ${sel}` : '## Heading'; break;
+      case 'link':
+        const url = prompt('Enter URL:');
+        if (!url) return;
+        insert = sel ? `[${sel}](${url})` : `[link text](${url})`;
+        break;
+      case 'image':
+        document.getElementById('imageInput').click();
+        return;
+      case 'video':
+        const vurl = prompt('Enter YouTube or Vimeo URL:');
+        if (!vurl) return;
+        const yt = vurl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+        const vim = vurl.match(/vimeo\.com\/(\d+)/);
+        if (yt) insert = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${yt[1]}" frameborder="0" allowfullscreen></iframe>\n`;
+        else if (vim) insert = `<iframe src="https://player.vimeo.com/video/${vim[1]}" width="560" height="315" frameborder="0" allowfullscreen></iframe>\n`;
+        else { alert('Could not recognize URL. Use YouTube or Vimeo.'); return; }
+        break;
+    }
+    if (insert) editor.insertAtCursor(insert);
+  }
+
+  document.querySelectorAll('.tb-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleToolbar(btn.dataset.cmd));
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); editor.save(); }
+  });
+
+  function addCopyButtons() {
+    document.querySelectorAll('.preview-content pre').forEach(pre => {
+      if (pre.querySelector('.copy-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = 'Copy';
+      btn.style.cssText = 'position:absolute;top:4px;right:4px;padding:2px 8px;font-size:0.7rem;background:var(--bg-alt,#eef0ff);border:1px solid var(--border,#dee2e6);border-radius:4px;cursor:pointer;opacity:0;transition:opacity 0.15s;z-index:5';
+      pre.style.position = 'relative';
+      pre.appendChild(btn);
+      pre.addEventListener('mouseenter', () => btn.style.opacity = '1');
+      pre.addEventListener('mouseleave', () => btn.style.opacity = '0');
+      btn.addEventListener('click', async () => {
+        const code = pre.querySelector('code') || pre;
+        try {
+          await navigator.clipboard.writeText(code.textContent);
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+        } catch { btn.textContent = 'Failed'; }
+      });
+    });
+  }
+
+  const origUpdate = preview.update.bind(preview);
+  preview.update = function (md) { origUpdate(md); addCopyButtons(); };
+
+  console.log('  Docs Editor initialized');
+  console.log('  Ctrl+S to save | Use toolbar for formatting');
+})();

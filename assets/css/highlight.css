@@ -1,0 +1,17 @@
+.hl-keyword { color: #7c3aed; }
+.hl-string { color: #16a34a; }
+.hl-number { color: #d97706; }
+.hl-comment { color: #9a9498; font-style: italic; }
+.hl-heading { color: #d48a00; font-weight: bold; }
+.hl-bold { color: #1b1b1e; font-weight: bold; }
+.hl-italic { color: #1b1b1e; font-style: italic; }
+.hl-code { color: #b45309; background: #f0f0f4; border-radius: 2px; padding: 0 3px; }
+.hl-link { color: #d48a00; text-decoration: underline; }
+.hl-image { color: #d97706; }
+.hl-list { color: #96031a; }
+.hl-blockquote { color: #9a9498; }
+.hl-hr { color: #9a9498; }
+.hl-frontmatter { color: #9a9498; }
+.hl-table { color: #16a34a; }
+.hl-addition { color: #16a34a; }
+.hl-deletion { color: #96031a; }
