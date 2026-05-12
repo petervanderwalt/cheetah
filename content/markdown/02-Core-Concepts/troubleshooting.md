@@ -1,7 +1,3 @@
----
-title: "Troubleshooting Guide"
----
-
 # Troubleshooting Guide
 
 This page covers common issues encountered when setting up grblHAL.

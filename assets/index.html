@@ -13,10 +13,12 @@
   <span class="file-path" id="filePath">No file open</span>
   <span class="status" id="status"></span>
   <button class="btn" id="btnSave" title="Save (Ctrl+S)">Save</button>
+  <button class="btn" id="btnDeploy" title="Build static site and preview">Deploy</button>
 </div>
 <input type="file" id="imageInput" accept="image/*" style="display:none">
 <div class="app-body">
   <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><img src="/assets/logo.svg" alt="Logo"></div>
     <div class="file-tree" id="fileTree"></div>
   </div>
   <div class="editor-pane" id="editorPane">
@@ -69,6 +71,13 @@
   </div>
 </div>
 
+<div class="context-menu" id="contextMenu" style="display:none">
+  <div class="context-menu-item" id="ctxRename">Rename</div>
+  <div class="context-menu-item" id="ctxMove">Move to folder</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item" id="ctxDelete">Delete</div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay" style="display:none">
   <div class="modal">
     <div class="modal-title" id="modalTitle">New Page</div>
@@ -82,6 +91,20 @@
     <div class="modal-footer">
       <button class="btn" id="modalCancel">Cancel</button>
       <button class="btn btn-primary" id="modalConfirm">Create</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="dialogOverlay" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="dialogTitle">Confirm</div>
+    <div class="modal-body">
+      <p class="dialog-message" id="dialogMessage"></p>
+      <input class="modal-input" id="dialogInput" style="display:none" autofocus>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="dialogCancel">Cancel</button>
+      <button class="btn btn-primary" id="dialogConfirm">OK</button>
     </div>
   </div>
 </div>

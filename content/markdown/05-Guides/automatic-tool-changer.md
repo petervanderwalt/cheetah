@@ -1,7 +1,3 @@
----
-title: "Tool Changes & Offsets"
----
-
 # Tool Changes & Offsets
 
 Changing tools mid-job allows you to use different end mills (e.g., roughing, finishing, v-carving) in a single project. grblHAL supports standard G-code tool change commands (`M6`) and length offsets (`G43`).

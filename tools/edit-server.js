@@ -71,18 +71,19 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(ROOT, 'assets', 'index.html'));
 });
 
+// Preview: serve build output at root so root-relative links work
+app.use(express.static(path.join(ROOT, 'build')));
+
 function parseFrontmatter(content) {
-  let title = null, order = null;
-  if (!content) return { title, order };
+  let order = null;
+  if (!content) return { order };
   const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
   if (fmMatch) {
     const fm = fmMatch[1];
-    const t = fm.match(/^title:\s*["']?(.+?)["']?\s*$/m);
-    if (t) title = t[1];
     const o = fm.match(/^order:\s*(\d+)\s*$/m);
     if (o) order = parseInt(o[1], 10);
   }
-  return { title, order };
+  return { order };
 }
 
 function getSortKey(name, order) {
@@ -117,15 +118,12 @@ function buildFileTree(dir, relativePath) {
       item._sortKey = numMatch ? parseInt(numMatch[1], 10) : 999;
       result.push(item);
     } else if (entry.name.endsWith('.md')) {
-      let title = entry.name.replace(/\.md$/, '');
       let order = null;
       try {
         const content = fs.readFileSync(fullPath, 'utf-8');
-        const fm = parseFrontmatter(content);
-        if (fm.title) title = fm.title;
-        order = fm.order;
+        order = parseFrontmatter(content).order;
       } catch {}
-      result.push({ name: entry.name, path: relPath, type: 'file', title, order, _sortKey: getSortKey(entry.name, order) });
+      result.push({ name: entry.name, path: relPath, type: 'file', order, _sortKey: getSortKey(entry.name, order) });
     }
   }
   sortEntries(result);
@@ -167,20 +165,15 @@ app.put('/api/file', (req, res) => {
 });
 
 app.post('/api/create-file', (req, res) => {
-  const { path: filePath, title, order } = req.body;
+  const { path: filePath, order } = req.body;
   if (!filePath) return res.status(400).json({ error: 'path required' });
   const fullPath = path.resolve(DOCS_ROOT, filePath);
   if (!fullPath.startsWith(DOCS_ROOT)) return res.status(403).json({ error: 'forbidden' });
   if (fs.existsSync(fullPath)) return res.status(409).json({ error: 'file exists' });
   const dir = path.dirname(fullPath);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const safeTitle = title || filePath.replace(/\.md$/, '').split('/').pop();
-  const orderLine = order != null ? `order: ${order}\n` : '';
-  const content = `---
-title: "${safeTitle}"
-${orderLine}---
-
-# ${safeTitle}
+  const name = filePath.replace(/\.md$/, '').split('/').pop().replace(/^\d+-/, '');
+  const content = `# ${name}
 
 ## Overview
 
@@ -220,13 +213,6 @@ function hello() {
 \`\`\`
 
 ---
-
-## Related
-
-- Internal link: [[Page Name]]
-- Wiki link with text: [[page-path|Display Text]]
-- Image: ![alt text](/images/example.png)
-- Video embed: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
 `;
   try {
     fs.writeFileSync(fullPath, content, 'utf-8');
@@ -293,6 +279,108 @@ app.post('/api/ast-edit', (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/folders', (req, res) => {
+  try {
+    const folders = [];
+    const walk = (dir, relPath) => {
+      let entries;
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+      for (const entry of entries) {
+        if (entry.name.startsWith('.')) continue;
+        const full = path.join(dir, entry.name);
+        const rel = relPath ? `${relPath}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+          folders.push(rel);
+          walk(full, rel);
+        }
+      }
+    };
+    walk(DOCS_ROOT, '');
+    res.json(folders);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/rename', (req, res) => {
+  const { path: itemPath, newName } = req.body;
+  if (!itemPath || !newName) return res.status(400).json({ error: 'path and newName required' });
+  const fullPath = path.resolve(DOCS_ROOT, itemPath);
+  if (!fullPath.startsWith(DOCS_ROOT)) return res.status(403).json({ error: 'forbidden' });
+  const parent = path.dirname(fullPath);
+  const newFullPath = path.join(parent, newName);
+  if (fs.existsSync(newFullPath)) return res.status(409).json({ error: 'already exists' });
+  try {
+    fs.renameSync(fullPath, newFullPath);
+    const newRelPath = path.join(path.dirname(itemPath), newName).replace(/\\/g, '/');
+    res.json({ ok: true, path: newRelPath });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/move', (req, res) => {
+  const { path: itemPath, destination } = req.body;
+  if (!itemPath || !destination) return res.status(400).json({ error: 'path and destination required' });
+  const fullPath = path.resolve(DOCS_ROOT, itemPath);
+  if (!fullPath.startsWith(DOCS_ROOT)) return res.status(403).json({ error: 'forbidden' });
+  const destPath = path.resolve(DOCS_ROOT, destination);
+  if (!destPath.startsWith(DOCS_ROOT)) return res.status(403).json({ error: 'forbidden' });
+  const newFullPath = path.join(destPath, path.basename(itemPath));
+  if (fs.existsSync(newFullPath)) return res.status(409).json({ error: 'already exists' });
+  try {
+    fs.mkdirSync(destPath, { recursive: true });
+    fs.renameSync(fullPath, newFullPath);
+    const newRelPath = path.join(destination, path.basename(itemPath)).replace(/\\/g, '/');
+    res.json({ ok: true, path: newRelPath });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const TRASH_ROOT = path.join(CONTENT_ROOT, 'trash');
+app.post('/api/delete', (req, res) => {
+  const { path: itemPath } = req.body;
+  if (!itemPath) return res.status(400).json({ error: 'path required' });
+  const fullPath = path.resolve(DOCS_ROOT, itemPath);
+  if (!fullPath.startsWith(DOCS_ROOT)) return res.status(403).json({ error: 'forbidden' });
+  if (!fs.existsSync(fullPath)) return res.status(404).json({ error: 'not found' });
+  // Only allow deleting empty folders (skip hidden entries)
+  try {
+    if (fs.statSync(fullPath).isDirectory()) {
+      const visible = fs.readdirSync(fullPath).filter(e => !e.startsWith('.'));
+      if (visible.length > 0) {
+        return res.status(400).json({ error: 'folder not empty' });
+      }
+    }
+  } catch (e) { return res.status(500).json({ error: e.message }); }
+  try {
+    if (!fs.existsSync(TRASH_ROOT)) fs.mkdirSync(TRASH_ROOT, { recursive: true });
+    const ts = Date.now();
+    const trashName = path.basename(itemPath) + '.' + ts;
+    const trashPath = path.join(TRASH_ROOT, trashName);
+    fs.renameSync(fullPath, trashPath);
+    res.json({ ok: true, trash: trashName });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/deploy', (req, res) => {
+  const buildScript = path.join(ROOT, 'tools', 'build.js');
+  try {
+    const { execSync } = require('child_process');
+    execSync(`node "${buildScript}"`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
+    // Extract the redirect URL from build/index.html
+    const indexHtml = fs.readFileSync(path.join(ROOT, 'build', 'index.html'), 'utf-8');
+    const m = indexHtml.match(/url=([^\s"']+)/);
+    const previewPath = m ? m[1] : '/';
+    res.json({ ok: true, url: `http://localhost:${PORT}${previewPath}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Build failed' });
   }
 });
 

@@ -1,7 +1,3 @@
----
-title: "Tuning Motion Settings"
----
-
 # Tuning Motion Settings
 
 Once your steps per mm are calibrated for accuracy, the next step is tuning for performance. This involves finding the maximum reliable speed and acceleration your machine can handle without losing steps (stalling).

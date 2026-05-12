@@ -1,7 +1,3 @@
----
-title: "Macros, Expressions & Flow Control"
----
-
 # Macros, Expressions & Flow Control
 
 grblHAL supports advanced G-code features allowing for **parametric programming**, **conditional logic**, and **math expressions**. This brings capabilities similar to LinuxCNC's O-codes and RS274NGC standards to your microcontroller.

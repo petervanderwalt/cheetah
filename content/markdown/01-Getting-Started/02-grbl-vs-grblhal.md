@@ -1,7 +1,3 @@
----
-title: "Grbl vs. grblHAL"
----
-
 # Grbl vs. grblHAL
 
 Understanding the differences between original **Grbl** and **grblHAL** will help you appreciate why grblHAL represents a significant evolution in open-source CNC control. This page breaks down the key differences and improvements.

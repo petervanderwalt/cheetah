@@ -1,7 +1,3 @@
----
-title: "Sender Developer Guide"
----
-
 # Sender Developer Guide
 
 **grblHAL** extends the original Grbl v1.1 protocol to support advanced hardware, plugins, and networking. While it remains backward compatible with most legacy senders, fully unlocking its potential requires understanding key differences.

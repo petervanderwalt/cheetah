@@ -1,7 +1,3 @@
----
-title: "Backlash Compensation"
----
-
 # Backlash Compensation
 
 **Backlash** is the lost motion or "slop" in a mechanical system caused by gaps between mating parts (e.g., a lead screw and nut, or loose belt teeth).

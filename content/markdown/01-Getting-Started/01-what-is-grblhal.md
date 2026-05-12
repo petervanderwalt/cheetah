@@ -1,7 +1,3 @@
----
-title: "What is grblHAL?"
----
-
 # What is grblHAL?
 
 **grblHAL** is a sophisticated, high-performance CNC (Computer Numerical Control) firmware designed to control CNC machines, routers, mills, lathes, laser cutters, and other motion control systems. It represents a complete evolution of the popular open-source GRBL firmware, specifically engineered to leverage the power of modern 32-bit microcontrollers.

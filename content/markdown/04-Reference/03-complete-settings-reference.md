@@ -1,7 +1,3 @@
----
-title: "Complete Settings Reference"
----
-
 # Complete Settings Reference
 
 This page is a comprehensive reference for all known grblHAL settings. It is designed to be a single source of truth for configuration. Use the table of contents on the right to navigate to a specific section, or use your browser's search function (`Ctrl+F`) to find a specific setting.

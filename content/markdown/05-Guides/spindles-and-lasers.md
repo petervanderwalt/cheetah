@@ -1,7 +1,3 @@
----
-title: "Spindles & Lasers Setup"
----
-
 # Spindles & Lasers Setup
 
 grblHAL is unique in its ability to support **multiple active tools** on the same machine. You can have a high-speed spindle for milling, a laser for engraving, and a drag knife for cutting vinyl—all controlled by the same board, switching between them with a simple command.

@@ -1,7 +1,3 @@
----
-title: "Introduction to Calibration"
----
-
 # Introduction to Machine Calibration
 
 **Calibration is the bridge between a working machine and an accurate machine.**

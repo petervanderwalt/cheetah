@@ -1,7 +1,3 @@
----
-title: "Calibrating Steps per Unit"
----
-
 # Calibrating Steps per Unit
 
 **Steps per Unit** (usually Steps per mm) is the setting that tells grblHAL how many motor steps are required to move an axis exactly 1 millimeter (or inch).

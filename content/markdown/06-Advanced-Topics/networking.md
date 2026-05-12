@@ -1,6 +1,4 @@
----
-title: "Networking & Connectivity"
----
+# Networking & Connectivity
 
 grblHAL offers powerful networking capabilities that go beyond standard USB connections. Depending on your controller hardware (e.g., Teensy 4.1, ESP32, RP2040), you may have access to **Ethernet**, **Wi-Fi**, **Bluetooth**, and a dedicated **WebUI**.
 

@@ -1,7 +1,3 @@
----
-title: "First Connection & Motion"
----
-
 # First Connection & Motion
 
 Congratulations on successfully flashing grblHAL! This guide will walk you through connecting to your controller for the first time, configuring essential settings, and testing your first movements safely.

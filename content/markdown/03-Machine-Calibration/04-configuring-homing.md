@@ -1,7 +1,3 @@
----
-title: "Configuring Homing"
----
-
 # Configuring Homing
 
 This guide covers the practical steps to enable and configure the homing cycle on your machine. For a theoretical explanation of how homing works, see [Homing Explained](../02-Core-Concepts/01-homing-explained.md).

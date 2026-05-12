@@ -1,7 +1,3 @@
----
-title: "Complete G-code & M-code Reference"
----
-
 # Complete G-code & M-code Reference
 
 This page is a comprehensive reference for all known grblHAL G-code and M-code commands. It is designed to be a single source of truth for machine operation and G-code programming.

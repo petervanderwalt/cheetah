@@ -1,6 +1,4 @@
----
-title: "Complete Plugins Reference"
----
+# Complete Plugins Reference"
 
 This guide lists plugin-specific **M-codes**, **G-codes**, and **$-settings** provided by grblHAL’s plugin ecosystem.  
 Each section includes the original repository URL for reference.  

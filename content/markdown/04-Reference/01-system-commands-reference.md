@@ -1,7 +1,3 @@
----
-title: "System Commands Reference"
----
-
 # System Commands Reference
 
 This page details the system commands available in grblHAL. These commands are distinct from G-code and are used to configure the controller, control machine state, and request real-time information.

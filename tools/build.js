@@ -159,18 +159,17 @@ function buildNavTree(dir, relativePath, currentPath) {
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       const children = buildNavTree(fullPath, relPath, currentPath);
-      const dirTitle = entry.name.replace(/^\d+-/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const dirTitle = entry.name.replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
       if (children.length > 0) {
         const numMatch = entry.name.match(/^(\d+)/);
         items.push({ name: entry.name, title: dirTitle, path: relPath, type: 'directory', children, _sortKey: numMatch ? parseInt(numMatch[1], 10) : 999 });
       }
     } else if (entry.name.endsWith('.md')) {
-      let title = entry.name.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      let title = entry.name.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
       let order = null;
       try {
         const content = fs.readFileSync(fullPath, 'utf-8');
         const parsed = grayMatter(content);
-        if (parsed.data.title) title = parsed.data.title;
         if (parsed.data.order != null) order = parseInt(parsed.data.order, 10);
       } catch {}
       const htmlPath = relPath.replace(/\.md$/, '.html');
@@ -188,7 +187,7 @@ function buildSearchIndex(files) {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
       const text = (parsed.content || content).replace(/[#*`\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
-      const title = parsed.data.title || file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ');
+      const title = file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
       index.push({
         title,
         path: file.path,
@@ -209,6 +208,11 @@ function copyAssets() {
   const src = path.join(CONTENT_ROOT, 'images');
   const dst = path.join(BUILD, 'images');
   if (fs.existsSync(src)) copyRecursive(src, dst);
+  const logo = path.join(ROOT, 'assets', 'logo.svg');
+  if (fs.existsSync(logo)) {
+    ensureDir(path.join(BUILD, 'assets'));
+    fs.copyFileSync(logo, path.join(BUILD, 'assets', 'logo.svg'));
+  }
 }
 function copyRecursive(src, dst) {
   ensureDir(dst);
@@ -220,18 +224,21 @@ function copyRecursive(src, dst) {
   }
 }
 
+
 const SITE_CSS = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#fbfffe;--bg-alt:#f5f4f6;--text:#1b1b1e;--text-light:#6d676e;--border:#ddd8dc;--accent:#faa916;--accent-hover:#e09800;--code-bg:#f0f0f4;--sidebar-width:280px}
+:root{--bg:#fbfffe;--bg-alt:#f5f4f6;--text:#1b1b1e;--text-light:#6d676e;--border:#ddd8dc;--accent:#f90000;--accent-hover:#d00000;--code-bg:#f0f0f4;--sidebar-width:280px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;color:var(--text);line-height:1.7;background:var(--bg);display:flex;min-height:100vh}
 .sidebar{width:var(--sidebar-width);background:var(--bg-alt);border-right:1px solid var(--border);padding:1.5rem;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;flex-shrink:0}
+.sidebar-logo{text-align:center;margin-bottom:1rem}
+.sidebar-logo img{max-width:120px;height:auto;display:inline-block}
 .sidebar h2{font-size:1.1rem;margin-bottom:1rem;color:var(--accent)}
 .sidebar .nav-tree{list-style:none;font-size:0.9rem}
 .sidebar .nav-tree li{margin:2px 0}
 .sidebar .nav-tree a{display:block;padding:4px 8px;color:var(--text);text-decoration:none;border-radius:4px;transition:background .15s}
 .sidebar .nav-tree a:hover{background:var(--border)}
 .sidebar .nav-tree a.active{background:var(--accent);color:#fff}
-.sidebar .nav-tree .folder-label{padding:4px 8px;font-weight:600;color:var(--text-light);font-size:0.8rem;text-transform:uppercase;letter-spacing:.5px}
+.sidebar .nav-tree .folder-label{padding:4px 8px;font-weight:700;color:var(--text);font-size:0.85rem;text-transform:uppercase;letter-spacing:.5px}
 .sidebar .nav-tree .nested{padding-left:1rem;list-style:none}
 .main{margin-left:var(--sidebar-width);flex:1;padding:2rem 3rem;min-width:0}
 .main h1{margin-bottom:0.5rem;color:var(--text)}
@@ -304,7 +311,8 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 </head>
 <body>
 <aside class="sidebar">
-  <h2>Documentation</h2>
+    <div class="sidebar-logo"><img src="/assets/logo.svg" alt="Logo"></div>
+    <h2>Documentation</h2>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="Search docs..." autocomplete="off">
     <div class="search-results" id="searchResults"></div>
@@ -314,7 +322,6 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 <main class="main">
   <div class="content-wrap">
     <article>
-      <h1>${title}</h1>
       ${contentHtml}
     </article>
     ${tocHtml}
@@ -417,17 +424,9 @@ function generateSite() {
   for (const f of files) {
     const noExt = f.path.replace(/\.md$/, '');
     const htmlPath = noExt + '.html';
-    wikiLookup[noExt.toLowerCase()] = { htmlPath, title: '' };
+    wikiLookup[noExt.toLowerCase()] = { htmlPath };
     const nameOnly = f.path.split('/').pop().replace(/\.md$/, '').replace(/^\d+-/, '');
-    wikiLookup[nameOnly.toLowerCase()] = { htmlPath, title: '' };
-    try {
-      const raw = fs.readFileSync(f.fullPath, 'utf-8');
-      const parsed = grayMatter(raw);
-      if (parsed.data.title) {
-        wikiLookup[parsed.data.title.toLowerCase()] = { htmlPath, title: parsed.data.title };
-        wikiLookup[noExt.toLowerCase()].title = parsed.data.title;
-      }
-    } catch {}
+    wikiLookup[nameOnly.toLowerCase()] = { htmlPath };
   }
 
   let firstFile = null;
@@ -435,7 +434,7 @@ function generateSite() {
     try {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
-      const title = parsed.data.title || file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ');
+      const title = file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
       const toc = extractToc(parsed.content);
       const tocHtml = renderToc(toc);
       const htmlContent = marked.parse(parsed.content, { renderer: tocRenderer });

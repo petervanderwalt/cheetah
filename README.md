@@ -176,6 +176,7 @@ docs/                       # Project root
 │   │   ├── markdown-parser.js  # Marked + wiki links
 │   │   ├── preview.js      # Live preview
 │   │   └── ast-editor.js   # WYSIWYG block editing
+│   └── logo.svg            # Product logo (replaceable, shown in sidebar)
 ├── tools/
 │   ├── edit-server.js      # Local Express server (port 3000)
 │   ├── build.js            # Static site generator → ./build

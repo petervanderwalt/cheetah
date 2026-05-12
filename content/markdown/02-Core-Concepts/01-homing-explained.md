@@ -1,7 +1,3 @@
----
-title: "Homing Explained"
----
-
 # Homing Explained
 
 **Homing** is one of the most important concepts in CNC operation. It's the process by which your machine establishes a known, repeatable reference point - essentially teaching the machine where it is in physical space. Without homing, your CNC controller has no idea where the axes are positioned, making accurate machining impossible.

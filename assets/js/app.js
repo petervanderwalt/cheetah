@@ -34,7 +34,7 @@
 
   function onFileSelect(path) {
     currentFilePath = path;
-    editor.open(path);
+    if (path) editor.open(path);
   }
 
   function showNewModal(type, parentDir) {
@@ -69,7 +69,7 @@
         try {
           const res = await fetch('/api/create-file', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: filePath, title: name, order })
+            body: JSON.stringify({ path: filePath, order })
           });
           if (!res.ok) { const err = await res.json(); alert(err.error || 'Failed'); return; }
           fileTree.load().then(() => parser.setWikiLookup(fileTree.getWikiLookup()));
@@ -95,6 +95,61 @@
     nameInput.onkeydown = (e) => { if (e.key === 'Enter') modalCallback(); if (e.key === 'Escape') overlay.style.display = 'none'; };
     overlay.onclick = (e) => { if (e.target === overlay) overlay.style.display = 'none'; };
   }
+
+  function dialogOverlay() {
+    return document.getElementById('dialogOverlay');
+  }
+  function dialogEl(id) {
+    return document.getElementById(id);
+  }
+
+  window.showConfirmModal = function (message, callback, btnText) {
+    const overlay = dialogOverlay();
+    dialogEl('dialogTitle').textContent = 'Confirm';
+    dialogEl('dialogMessage').textContent = message;
+    dialogEl('dialogMessage').style.display = '';
+    dialogEl('dialogInput').style.display = 'none';
+    dialogEl('dialogConfirm').textContent = btnText || 'Confirm';
+    dialogEl('dialogConfirm').className = 'btn btn-primary';
+    overlay.style.display = 'flex';
+    dialogEl('dialogConfirm').onclick = () => { overlay.style.display = 'none'; callback(true); };
+    dialogEl('dialogCancel').onclick = () => { overlay.style.display = 'none'; callback(false); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.style.display = 'none'; callback(false); } };
+    dialogEl('dialogCancel').focus();
+  };
+
+  window.showPromptModal = function (title, defaultValue, callback, btnText) {
+    const overlay = dialogOverlay();
+    dialogEl('dialogTitle').textContent = title;
+    dialogEl('dialogMessage').style.display = 'none';
+    const input = dialogEl('dialogInput');
+    input.style.display = '';
+    input.value = defaultValue || '';
+    dialogEl('dialogConfirm').textContent = btnText || 'Rename';
+    dialogEl('dialogConfirm').className = 'btn btn-primary';
+    overlay.style.display = 'flex';
+    setTimeout(() => { input.focus(); input.select(); }, 100);
+    const submit = () => { overlay.style.display = 'none'; callback(input.value); };
+    dialogEl('dialogConfirm').onclick = submit;
+    dialogEl('dialogCancel').onclick = () => { overlay.style.display = 'none'; callback(null); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.style.display = 'none'; callback(null); } };
+    input.onkeydown = (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') { overlay.style.display = 'none'; callback(null); } };
+  };
+
+  window.showAlertModal = function (message, title) {
+    const overlay = dialogOverlay();
+    dialogEl('dialogTitle').textContent = title || 'Error';
+    dialogEl('dialogMessage').textContent = message;
+    dialogEl('dialogMessage').style.display = '';
+    dialogEl('dialogInput').style.display = 'none';
+    dialogEl('dialogConfirm').textContent = 'OK';
+    dialogEl('dialogConfirm').className = 'btn btn-primary';
+    dialogEl('dialogCancel').style.display = 'none';
+    overlay.style.display = 'flex';
+    dialogEl('dialogConfirm').onclick = () => { overlay.style.display = 'none'; dialogEl('dialogCancel').style.display = ''; };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.style.display = 'none'; dialogEl('dialogCancel').style.display = ''; } };
+    dialogEl('dialogConfirm').focus();
+  };
 
   fileTree.load().then(() => {
     parser.setWikiLookup(fileTree.getWikiLookup());
@@ -240,6 +295,31 @@
 
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); editor.save(); }
+  });
+
+  document.getElementById('btnDeploy').addEventListener('click', async () => {
+    const btn = document.getElementById('btnDeploy');
+    const orig = btn.textContent;
+    btn.textContent = 'Building...';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/deploy', { method: 'POST' });
+      if (!res.ok) { const err = await res.json(); (window.showAlertModal || alert)(err.error || 'Build failed'); return; }
+      const data = await res.json();
+      if (typeof window.showConfirmModal === 'function') {
+        window.showConfirmModal('Remember to transfer the contents of the BUILD directory.\nOpening preview.', (ok) => {
+          if (ok) window.open(data.url, '_blank');
+        }, 'Preview');
+      } else {
+        alert('Remember to transfer the contents of the BUILD directory.');
+        window.open(data.url, '_blank');
+      }
+    } catch (e) {
+      (window.showAlertModal || alert)('Build failed');
+    } finally {
+      btn.textContent = orig;
+      btn.disabled = false;
+    }
   });
 
   function addCopyButtons() {

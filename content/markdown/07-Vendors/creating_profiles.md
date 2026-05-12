@@ -1,7 +1,3 @@
----
-title: "Creating Vendor Profiles"
----
-
 # Creating Vendor Profiles
 
 The **[grblHAL Web Builder](http://svn.io-engineering.com:8080/)** allows vendors to provide pre-configured firmware options for their machines. This guide details how to create and host your own machine profiles.

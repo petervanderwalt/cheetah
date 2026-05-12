@@ -1,7 +1,3 @@
----
-title: "Coordinate Systems"
----
-
 # Coordinate Systems
 
 Understanding coordinate systems is **fundamental** to CNC operation. Coordinate systems define how the machine interprets positions and movements. grblHAL supports multiple coordinate systems that work together to provide flexibility, accuracy, and ease of use.

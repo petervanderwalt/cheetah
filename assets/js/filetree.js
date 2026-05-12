@@ -8,6 +8,7 @@ class FileTree {
     this.expandedDirs = new Set();
     this.currentDir = null;
     this.renderToolbar();
+    this.setupContextMenu();
   }
 
   renderToolbar() {
@@ -46,10 +47,9 @@ class FileTree {
       for (const item of items) {
         if (item.type === 'file') {
           const noExt = item.path.replace(/\.md$/, '');
-          lookup[noExt.toLowerCase()] = { htmlPath: noExt + '.html', title: item.title };
+          lookup[noExt.toLowerCase()] = { htmlPath: noExt + '.html' };
           const nameOnly = item.name.replace(/\.md$/, '').replace(/^\d+-/, '');
-          lookup[nameOnly.toLowerCase()] = { htmlPath: noExt + '.html', title: item.title };
-          if (item.title) lookup[item.title.toLowerCase()] = { htmlPath: noExt + '.html', title: item.title };
+          lookup[nameOnly.toLowerCase()] = { htmlPath: noExt + '.html' };
         }
         if (item.children) walk(item.children);
       }
@@ -59,7 +59,6 @@ class FileTree {
   }
 
   render() {
-    const treeEl = this.container.querySelector('.file-tree');
     const existing = this.container.querySelector('ul.file-tree');
     if (existing) existing.remove();
     const ul = document.createElement('ul');
@@ -76,7 +75,7 @@ class FileTree {
         const header = document.createElement('div');
         header.className = 'tree-item folder-label';
         header.style.paddingLeft = `${12 + depth * 12}px`;
-        header.textContent = item.name.replace(/^\d+-/, '').replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        header.textContent = item.name;
         li.appendChild(header);
 
         const childUl = document.createElement('ul');
@@ -100,6 +99,11 @@ class FileTree {
           this.currentDir = item.path;
           this.onNewFile('page', item.path);
         });
+        header.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showContextMenu(e, item);
+        });
       } else if (item.type === 'file') {
         const div = document.createElement('div');
         div.className = 'tree-item';
@@ -112,13 +116,16 @@ class FileTree {
         icon.textContent = '\u{1f4c4}';
         div.appendChild(icon);
 
-        const name = document.createElement('span');
-        const displayName = item.title || item.name.replace(/\.md$/, '');
-        name.textContent = displayName;
-        div.appendChild(name);
+        const displayName = item.name.replace(/\.md$/, '');
+        div.appendChild(document.createTextNode(displayName));
 
         div.addEventListener('click', () => {
           this.select(item.path);
+        });
+        div.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showContextMenu(e, item);
         });
         li.appendChild(div);
       }
@@ -159,5 +166,189 @@ class FileTree {
         this.render();
       }
     });
+  }
+
+  setupContextMenu() {
+    this.menu = document.getElementById('contextMenu');
+    if (!this.menu) return;
+    this.menuItem = null;
+    this.menuType = null;
+
+    document.addEventListener('click', () => this.hideContextMenu());
+    document.addEventListener('contextmenu', () => this.hideContextMenu());
+
+    this.menu.addEventListener('click', (e) => e.stopPropagation());
+    this.menu.addEventListener('contextmenu', (e) => e.stopPropagation());
+
+    document.getElementById('ctxRename').addEventListener('click', () => {
+      if (this.menuItem) this.renameItem(this.menuItem);
+      this.hideContextMenu();
+    });
+    document.getElementById('ctxDelete').addEventListener('click', () => {
+      if (this.menuItem) this.deleteItem(this.menuItem);
+      this.hideContextMenu();
+    });
+    document.getElementById('ctxMove').addEventListener('click', () => {
+      if (this.menuItem) this.moveItem(this.menuItem);
+      this.hideContextMenu();
+    });
+  }
+
+  showContextMenu(e, item) {
+    this.menuItem = item;
+    this.menuType = item.type;
+
+    document.getElementById('ctxRename').style.display = '';
+    document.getElementById('ctxMove').style.display = '';
+    document.getElementById('ctxDelete').style.display = '';
+
+    if (item.type === 'directory') {
+      document.getElementById('ctxRename').textContent = 'Rename folder';
+      document.getElementById('ctxMove').textContent = 'Move to folder';
+      document.getElementById('ctxDelete').textContent = 'Delete folder';
+    } else {
+      document.getElementById('ctxRename').textContent = 'Rename';
+      document.getElementById('ctxMove').textContent = 'Move to folder';
+      document.getElementById('ctxDelete').textContent = 'Delete';
+    }
+
+    this.menu.style.left = e.clientX + 'px';
+    this.menu.style.top = e.clientY + 'px';
+    this.menu.style.display = 'block';
+  }
+
+  hideContextMenu() {
+    if (this.menu) this.menu.style.display = 'none';
+  }
+
+  async renameItem(item) {
+    const oldName = item.name;
+    if (typeof window.showPromptModal !== 'function') {
+      const newName = prompt('Rename:', oldName);
+      if (!newName || newName === oldName) return;
+      this.doRename(item, newName);
+      return;
+    }
+    window.showPromptModal('Rename', oldName, (newName) => {
+      if (!newName || newName === oldName) return;
+      this.doRename(item, newName);
+    });
+  }
+
+  async doRename(item, newName) {
+    try {
+      const res = await fetch('/api/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path, newName })
+      });
+      if (!res.ok) { const err = await res.json(); (window.showAlertModal || alert)(err.error || 'Rename failed'); return; }
+      const data = await res.json();
+      await this.load();
+      this.select(data.path);
+    } catch (e) { alert('Rename failed'); }
+  }
+
+  async deleteItem(item) {
+    const label = item.type === 'directory' ? 'folder' : 'file';
+    const msg = `Move ${label} "${item.name}" to trash?`;
+    if (typeof window.showConfirmModal === 'function') {
+      window.showConfirmModal(msg, (confirmed) => {
+        if (!confirmed) return;
+        this.doDelete(item);
+      });
+    } else {
+      if (!confirm(msg)) return;
+      this.doDelete(item);
+    }
+  }
+
+  async doDelete(item) {
+    try {
+      const res = await fetch('/api/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: item.path })
+      });
+      if (!res.ok) { const err = await res.json(); (window.showAlertModal || alert)(err.error || 'Delete failed'); return; }
+      if (item.path === this.currentPath) {
+        this.currentPath = null;
+        if (this.onSelect) this.onSelect('');
+      }
+      await this.load();
+    } catch (e) { alert('Delete failed'); }
+  }
+
+  async moveItem(item) {
+    try {
+      const res = await fetch('/api/folders');
+      const folders = await res.json();
+      const currentDir = item.type === 'directory' ? item.path : item.path.split('/').slice(0, -1).join('/');
+      const available = folders.filter(f => f !== item.path && !f.startsWith(item.path + '/'));
+      this.showFolderPicker(available, currentDir, async (destination) => {
+        try {
+          const r = await fetch('/api/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: item.path, destination })
+          });
+          if (!r.ok) { const err = await r.json(); alert(err.error || 'Move failed'); return; }
+          const data = await r.json();
+          await this.load();
+          this.select(data.path);
+        } catch (e) { alert('Move failed'); }
+      });
+    } catch (e) { alert('Failed to load folders'); }
+  }
+
+  showFolderPicker(folders, currentDir, callback) {
+    const overlay = document.getElementById('modalOverlay');
+    const title = document.getElementById('modalTitle');
+    const body = document.querySelector('.modal-body');
+    const confirmBtn = document.getElementById('modalConfirm');
+    const cancelBtn = document.getElementById('modalCancel');
+    const nameInput = document.getElementById('modalName');
+    const orderInput = document.getElementById('modalOrder');
+    const hint = document.getElementById('modalHint');
+
+    title.textContent = 'Move to folder';
+    nameInput.style.display = 'none';
+    orderInput.style.display = 'none';
+    hint.style.display = 'none';
+
+    let select = body.querySelector('.folder-select');
+    if (!select) {
+      select = document.createElement('select');
+      select.className = 'folder-select';
+      select.style.cssText = 'width:100%;padding:8px 12px;margin-top:8px;background:var(--bg-alt);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:0.9rem;outline:none;font-family:var(--font-sans)';
+      body.appendChild(select);
+    }
+    select.style.display = '';
+    select.innerHTML = '';
+    for (const f of folders) {
+      const opt = document.createElement('option');
+      opt.value = f;
+      opt.textContent = f || '(root)';
+      select.appendChild(opt);
+    }
+
+    overlay.style.display = 'flex';
+
+    const cleanup = () => {
+      overlay.style.display = 'none';
+      select.style.display = 'none';
+      nameInput.style.display = '';
+      orderInput.style.display = '';
+      hint.style.display = '';
+      confirmBtn.onclick = null;
+      cancelBtn.onclick = null;
+    };
+
+    confirmBtn.onclick = () => {
+      const dest = select.value;
+      cleanup();
+      callback(dest);
+    };
+    cancelBtn.onclick = cleanup;
   }
 }

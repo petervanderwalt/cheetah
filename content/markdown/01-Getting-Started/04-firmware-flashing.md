@@ -1,7 +1,3 @@
----
-title: "Firmware Flashing"
----
-
 # Firmware Flashing
 
 This guide will walk you through the process of getting grblHAL firmware onto your controller board. There are two main approaches: using the **Web Builder** (recommended for most users) or **manual compilation** (for advanced users).
