@@ -80,7 +80,17 @@ class Editor {
       this.setStatus('saved', 'File loaded');
       this.addTab(path);
       if (this.onChange) this.onChange(this.content);
-      this.textarea.focus();
+      this.textarea.focus({preventScroll: true});
+      requestAnimationFrame(() => {
+        this.textarea.scrollTop = 0;
+        this.textarea.selectionStart = 0;
+        this.textarea.selectionEnd = 0;
+        requestAnimationFrame(() => {
+          this.textarea.scrollTop = 0;
+          this.textarea.selectionStart = 0;
+          this.textarea.selectionEnd = 0;
+        });
+      });
     } catch (e) {
       this.setStatus('error', 'Failed to load file');
     }

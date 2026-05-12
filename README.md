@@ -127,9 +127,41 @@ The build gives you:
 docs/                       # Project root
 ├── content/                # Your documentation — .md files + images
 │   ├── 01-Getting-Started/
+│   │   ├── 01-what-is-grblhal.md
+│   │   ├── 02-grbl-vs-grblhal.md
+│   │   ├── 03-controller-support.md
+│   │   ├── 04-firmware-flashing.md
+│   │   └── 05-first-connection.md
 │   ├── 02-Core-Concepts/
-│   ├── ...
-│   ├── assets/img/          # Uploaded images (controllers/, etc.)
+│   │   ├── 01-homing-explained.md
+│   │   └── 02-coordinate-systems.md
+│   ├── 03-Machine-Calibration/
+│   │   ├── 01-introduction.md
+│   │   ├── 02-calibrating-steps.md
+│   │   ├── 03-jerk-tuning.md
+│   │   ├── 03-tuning-motion.md
+│   │   ├── 04-configuring-homing.md
+│   │   └── 05-backlash-compensation.md
+│   ├── 04-Reference/
+│   │   ├── complete-g-m-code-reference.md
+│   │   ├── complete-settings-reference.md
+│   │   ├── complete_plugin_reference.md
+│   │   └── system-commands-reference.md
+│   ├── 05-Guides/
+│   │   ├── automatic-tool-changer.md
+│   │   ├── probing.md
+│   │   ├── spindles-and-lasers.md
+│   │   └── vfd-spindle-setup.md
+│   ├── 06-Advanced-Topics/
+│   │   ├── macros-and-expressions.md
+│   │   ├── networking.md
+│   │   └── sender-interface.md
+│   ├── 07-Vendors/
+│   │   └── creating_profiles.md
+│   ├── assets/
+│   │   ├── img/
+│   │   │   ├── controllers/    # Uploaded controller board images
+│   │   │   └── ...             # Site assets (favicon, logo, etc.)
 │   └── troubleshooting.md
 ├── assets/                 # Editor frontend (vanilla HTML/CSS/JS)
 │   ├── index.html
