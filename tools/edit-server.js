@@ -6,7 +6,8 @@ const { marked } = require('marked');
 const hljs = require('highlight.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const DOCS_ROOT = path.join(ROOT, 'content');
+const CONTENT_ROOT = path.join(ROOT, 'content');
+const DOCS_ROOT = path.join(CONTENT_ROOT, 'markdown');
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 
 marked.setOptions({
@@ -58,9 +59,11 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/assets', express.static(path.join(ROOT, 'assets')));
+app.use('/images', express.static(path.join(CONTENT_ROOT, 'images')));
+app.use('/videos', express.static(path.join(CONTENT_ROOT, 'videos')));
+app.use('/misc', express.static(path.join(CONTENT_ROOT, 'misc')));
 app.use('/build', express.static(path.join(ROOT, 'build')));
 app.use('/docs', express.static(DOCS_ROOT, { index: false }));
-app.use('/cassets', express.static(path.join(DOCS_ROOT, 'assets')));
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
@@ -104,7 +107,7 @@ function buildFileTree(dir, relativePath) {
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
   catch { return result; }
   for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'assets' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
+    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
     const fullPath = path.join(dir, entry.name);
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
@@ -222,7 +225,7 @@ function hello() {
 
 - Internal link: [[Page Name]]
 - Wiki link with text: [[page-path|Display Text]]
-- Image: ![alt text](/assets/img/example.png)
+- Image: ![alt text](/images/example.png)
 - Video embed: <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
 `;
   try {
@@ -257,14 +260,14 @@ app.post('/api/preview', (req, res) => {
 app.post('/api/upload', (req, res) => {
   const { name, data } = req.body;
   if (!name || !data) return res.status(400).json({ error: 'name and data required' });
-  const imgDir = path.join(DOCS_ROOT, 'assets', 'img');
+  const imgDir = path.join(CONTENT_ROOT, 'images');
   if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
   const safeName = path.basename(name);
   const fullPath = path.join(imgDir, safeName);
   try {
     const buffer = Buffer.from(data, 'base64');
     fs.writeFileSync(fullPath, buffer);
-    res.json({ url: `/cassets/img/${safeName}`, path: `assets/img/${safeName}` });
+    res.json({ url: `/images/${safeName}`, path: `images/${safeName}` });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -310,7 +313,7 @@ app.get('/api/events', (req, res) => {
 });
 
 const watcher = chokidar.watch(DOCS_ROOT, {
-  ignored: /(node_modules|\.git|build|assets|tools|\.(?!md))/,
+  ignored: /(node_modules|\.git|build|tools|\.(?!md))/,
   persistent: true,
   ignoreInitial: true
 });

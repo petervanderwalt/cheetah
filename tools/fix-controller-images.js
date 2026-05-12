@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const fp = path.resolve(__dirname, '..', 'content', '01-Getting-Started', '03-controller-support.md');
+const fp = path.resolve(__dirname, '..', 'content', 'markdown', '01-Getting-Started', '03-controller-support.md');
 let content = fs.readFileSync(fp, 'utf-8');
 
 // Extract all rows from the mangled content
@@ -81,7 +81,7 @@ out += '| :--- | :--- | :--- | :--- |\n';
 
 for (const row of rows) {
   const imgFile = findImg(row.name) || '';
-  const imgCell = imgFile ? '![](/cassets/img/controllers/' + imgFile + ')' : '';
+  const imgCell = imgFile ? '![](/images/controllers/' + imgFile + ')' : '';
   const nameCell = getOriginalNameCell(row, content);
   out += '| ' + nameCell + ' | ' + imgCell + ' | [' + row.driver + '](' + row.driverUrl + ') | [' + row.builder + '](' + row.builderUrl + ') |\n';
 }

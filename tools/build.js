@@ -5,7 +5,8 @@ const hljs = require('highlight.js');
 const grayMatter = require('gray-matter');
 
 const ROOT = path.resolve(__dirname, '..');
-const CONTENT = path.join(ROOT, 'content');
+const CONTENT_ROOT = path.join(ROOT, 'content');
+const CONTENT = path.join(CONTENT_ROOT, 'markdown');
 const BUILD = path.join(ROOT, 'build');
 
 marked.setOptions({
@@ -135,7 +136,7 @@ function scanFiles(dir, relativePath) {
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
   catch { return results; }
   for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'assets' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
+    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
     const fullPath = path.join(dir, entry.name);
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
@@ -153,7 +154,7 @@ function buildNavTree(dir, relativePath, currentPath) {
   try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
   catch { return items; }
   for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'assets' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
+    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
     const fullPath = path.join(dir, entry.name);
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
@@ -205,8 +206,8 @@ function ensureDir(dir) {
 }
 
 function copyAssets() {
-  const src = path.join(CONTENT, 'assets');
-  const dst = path.join(BUILD, 'cassets');
+  const src = path.join(CONTENT_ROOT, 'images');
+  const dst = path.join(BUILD, 'images');
   if (fs.existsSync(src)) copyRecursive(src, dst);
 }
 function copyRecursive(src, dst) {
