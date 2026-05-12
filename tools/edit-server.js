@@ -373,12 +373,9 @@ app.post('/api/deploy', (req, res) => {
   const buildScript = path.join(ROOT, 'tools', 'build.js');
   try {
     const { execSync } = require('child_process');
-    execSync(`node "${buildScript}"`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
-    // Extract the redirect URL from build/index.html
-    const indexHtml = fs.readFileSync(path.join(ROOT, 'build', 'index.html'), 'utf-8');
-    const m = indexHtml.match(/url=([^\s"']+)/);
-    const previewPath = m ? m[1] : '/';
-    res.json({ ok: true, url: `http://localhost:${PORT}${previewPath}` });
+    const prefix = req.body && req.body.prefix ? ` --prefix=${req.body.prefix}` : '';
+    execSync(`node "${buildScript}"${prefix}`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Build failed' });
   }

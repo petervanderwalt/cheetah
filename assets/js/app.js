@@ -300,27 +300,36 @@
   document.getElementById('btnDeploy').addEventListener('click', async () => {
     const btn = document.getElementById('btnDeploy');
     const orig = btn.textContent;
+    if (typeof window.showPromptModal === 'function') {
+      window.showPromptModal('Base URL (e.g. /repo-name)', '', (prefix) => {
+        if (prefix === null) return;
+        doDeploy(prefix);
+      }, 'Deploy');
+    } else {
+      doDeploy('');
+    }
+  });
+
+  async function doDeploy(prefix) {
+    const btn = document.getElementById('btnDeploy');
+    const orig = btn.textContent;
     btn.textContent = 'Building...';
     btn.disabled = true;
     try {
-      const res = await fetch('/api/deploy', { method: 'POST' });
+      const res = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix })
+      });
       if (!res.ok) { const err = await res.json(); (window.showAlertModal || alert)(err.error || 'Build failed'); return; }
-      const data = await res.json();
-      if (typeof window.showConfirmModal === 'function') {
-        window.showConfirmModal('Remember to transfer the contents of the BUILD directory.\nOpening preview.', (ok) => {
-          if (ok) window.open(data.url, '_blank');
-        }, 'Preview');
-      } else {
-        alert('Remember to transfer the contents of the BUILD directory.');
-        window.open(data.url, '_blank');
-      }
+      (window.showAlertModal || alert)('Build complete. Transfer the contents of the BUILD directory to your server.');
     } catch (e) {
       (window.showAlertModal || alert)('Build failed');
     } finally {
       btn.textContent = orig;
       btn.disabled = false;
     }
-  });
+  }
 
   function addCopyButtons() {
     document.querySelectorAll('.preview-content pre').forEach(pre => {

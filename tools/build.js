@@ -9,6 +9,10 @@ const CONTENT_ROOT = path.join(ROOT, 'content');
 const CONTENT = path.join(CONTENT_ROOT, 'markdown');
 const BUILD = path.join(ROOT, 'build');
 
+const prefixArg = process.argv.find(a => a.startsWith('--prefix='));
+const BASE = prefixArg ? prefixArg.split('=')[1].replace(/\/+$/, '') : '';
+const rel = (url) => BASE ? BASE + url : url;
+
 marked.setOptions({
   breaks: false,
   gfm: true,
@@ -65,7 +69,7 @@ const wikiLinkExtension = {
     const key = token.target.toLowerCase();
     const resolved = wikiLookup[key];
     if (resolved) {
-      return `<a href="/${resolved.htmlPath}">${token.text}</a>`;
+      return `<a href="${rel('/' + resolved.htmlPath)}">${token.text}</a>`;
     }
     return `<a class="wiki-broken" href="#">${token.text}</a>`;
   }
@@ -309,12 +313,12 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${title}</title>
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="${rel('/assets/css/site.css')}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 </head>
 <body>
 <aside class="sidebar">
-    <div class="sidebar-logo"><img src="/assets/logo.svg" alt="Logo"></div>
+    <div class="sidebar-logo"><img src="${rel('/assets/logo.svg')}" alt="Logo"></div>
     <h2>Documentation</h2>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="Search docs..." autocomplete="off">
@@ -341,7 +345,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
   ).slice(0, 20);
   if (matches.length === 0) { results.classList.remove('show'); return; }
   results.innerHTML = matches.map(m =>
-    '<a href="' + m.url + '"><div class="search-title">' + m.title + '</div><div class="search-excerpt">' + m.excerpt + '</div></a>'
+    '<a href="' + rel(m.url) + '"><div class="search-title">' + m.title + '</div><div class="search-excerpt">' + m.excerpt + '</div></a>'
   ).join('');
   results.classList.add('show');
 });
@@ -381,7 +385,7 @@ function renderNavList(items, currentPath) {
       html += '</li>';
     } else {
       const active = item.path === currentPath ? ' class="active"' : '';
-      html += `<li><a${active} href="/${item.htmlPath}">${item.title}</a></li>`;
+      html += `<li><a${active} href="${rel('/' + item.htmlPath)}">${item.title}</a></li>`;
     }
   }
   return html;
@@ -455,7 +459,7 @@ function generateSite() {
   }
 
   if (firstFile) {
-    const redirect = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=/${firstFile.path}"></head><body></body></html>`;
+    const redirect = `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${rel('/' + firstFile.path)}"></head><body></body></html>`;
     fs.writeFileSync(path.join(BUILD, 'index.html'), redirect);
   }
 

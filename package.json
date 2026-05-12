@@ -4,8 +4,7 @@
   "private": true,
   "description": "Lightweight Markdown documentation editor & static site generator",
   "scripts": {
-    "edit": "node tools/edit-server.js",
-    "deploy": "node tools/build.js"
+    "edit": "node tools/edit-server.js"
   },
   "dependencies": {
     "chokidar": "^3.6.0",

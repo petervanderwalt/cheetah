@@ -81,8 +81,8 @@ npm run edit
 
 ```bash
 # Build static site:
-npm run deploy
-# Output in ./build — ready to FTP
+# Click "Deploy" in the editor — prompts for base path (e.g. /repo-name)
+# Output in ./build — ready to FTP or push to GitHub Pages
 ```
 
 ---
@@ -194,7 +194,7 @@ docs/                       # Project root
 | Command | What it does |
 |---------|-------------|
 | `npm run edit` | Start the local editor at localhost:3000 |
-| `npm run deploy` | Build static site to ./build |
+| Editor Deploy button | Build static site with optional base path prefix |
 
 ---
 
