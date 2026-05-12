@@ -76,7 +76,7 @@ const tocRenderer = new marked.Renderer();
 
 tocRenderer.heading = function(text, level) {
   const id = slugify(text.replace(/<[^>]*>/g, ''));
-  return `<h${level} id="${id}">${text}</h${level}>`;
+  return `<h${level} id="${id}"><a class="anchor" href="#${id}" aria-hidden="true"></a>${text}</h${level}>`;
 };
 
 function extractToc(md) {
@@ -187,7 +187,7 @@ function buildSearchIndex(files) {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
       const text = (parsed.content || content).replace(/[#*`\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
-      const title = file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
+      const title = file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' ').toUpperCase();
       index.push({
         title,
         path: file.path,
@@ -252,6 +252,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 .main a{color:var(--accent);text-decoration:none}
 .main a:hover{text-decoration:underline}
 .main a.wiki-broken{color:#e63946;text-decoration:underline dashed #e63946}
+.main .anchor{float:left;margin-left:-1.2rem;font-size:0.85rem;line-height:inherit;color:var(--accent);text-decoration:none;opacity:0;transition:opacity 0.15s}
+.main h2:hover .anchor,.main h3:hover .anchor,.main h4:hover .anchor,.main h5:hover .anchor,.main h6:hover .anchor{opacity:1}
+.main .anchor::before{content:"#"}
 .main pre{background:var(--code-bg);border-radius:6px;padding:1rem;overflow-x:auto;margin-bottom:1rem;font-size:0.9rem;line-height:1.5}
 .main code{background:var(--code-bg);padding:2px 6px;border-radius:3px;font-size:0.9em}
 .main pre code{background:none;padding:0;border-radius:0}
@@ -434,7 +437,7 @@ function generateSite() {
     try {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
-      const title = file.path.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
+      const title = file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' ').toUpperCase();
       const toc = extractToc(parsed.content);
       const tocHtml = renderToc(toc);
       const htmlContent = marked.parse(parsed.content, { renderer: tocRenderer });
