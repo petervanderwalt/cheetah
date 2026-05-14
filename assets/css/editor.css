@@ -294,6 +294,28 @@ body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
   margin: 4px 8px;
 }
 
+.setup-overlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+}
+.setup-card {
+  text-align: center; max-width: 420px; padding: 2rem;
+}
+.setup-icon { font-size: 3rem; margin-bottom: 1rem; }
+.setup-card h2 { margin-bottom: 0.5rem; }
+.setup-card p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 1.5rem; }
+.setup-input {
+  width: 100%; padding: 10px 14px; font-size: 0.9rem;
+  background: var(--bg-alt); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; outline: none;
+  font-family: var(--font-mono);
+}
+.setup-input:focus { border-color: var(--accent); }
+.setup-error { color: var(--error); font-size: 0.82rem; margin-top: 8px; display: none; }
+.setup-footer { margin-top: 1rem; }
+.setup-footer .btn { padding: 8px 24px; font-size: 0.9rem; }
+
 @media (max-width: 900px) {
   .app-body { flex-direction: column; }
   .sidebar { width: 100%; max-height: 180px; border-right: none; border-bottom: 1px solid var(--border); }

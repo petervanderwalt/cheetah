@@ -77,12 +77,13 @@ cheetah is a lightweight, filesystem-native Markdown documentation editor and st
 npm install
 npm run edit
 # Opens editor at http://localhost:3000
+# First run: point it to your project folder (the one with content/markdown/)
 ```
 
 ```bash
 # Build static site:
-# Click "Deploy" in the editor — prompts for base path (e.g. /repo-name)
-# Output in ./build — ready to FTP or push to GitHub Pages
+# Click "Deploy" in the editor — prompts for base path (e.g. /repo-name, subdirectory on FTP/Web Server etc)
+# Output goes to docs/ in your project — ready for GitHub Pages ./docs or FTP
 ```
 
 ---
@@ -123,69 +124,49 @@ The build gives you:
 
 ## Project structure
 
+**Engine** (this repo — editor & build tools):
 ```
-docs/                       # Project root
-├── content/                # Your documentation
-│   ├── images/             # Image files (upload via editor or manually)
-│   │   ├── controllers/    # Controller board images
-│   │   ├── favicon.ico
-│   │   └── ...
-│   ├── videos/             # Video files
-│   ├── misc/               # PDFs, zips, exes, etc.
-│   ├── markdown/           # Markdown content files
-│   │   ├── 01-Getting-Started/
-│   │   │   ├── 01-what-is-grblhal.md
-│   │   │   ├── 02-grbl-vs-grblhal.md
-│   │   │   ├── 03-controller-support.md
-│   │   │   ├── 04-firmware-flashing.md
-│   │   │   └── 05-first-connection.md
-│   │   ├── 02-Core-Concepts/
-│   │   │   ├── 01-homing-explained.md
-│   │   │   └── 02-coordinate-systems.md
-│   │   ├── 03-Machine-Calibration/
-│   │   │   ├── 01-introduction.md
-│   │   │   ├── 02-calibrating-steps.md
-│   │   │   ├── 03-jerk-tuning.md
-│   │   │   ├── 03-tuning-motion.md
-│   │   │   ├── 04-configuring-homing.md
-│   │   │   └── 05-backlash-compensation.md
-│   │   ├── 04-Reference/
-│   │   │   ├── complete-g-m-code-reference.md
-│   │   │   ├── complete-settings-reference.md
-│   │   │   ├── complete_plugin_reference.md
-│   │   │   └── system-commands-reference.md
-│   │   ├── 05-Guides/
-│   │   │   ├── automatic-tool-changer.md
-│   │   │   ├── probing.md
-│   │   │   ├── spindles-and-lasers.md
-│   │   │   └── vfd-spindle-setup.md
-│   │   ├── 06-Advanced-Topics/
-│   │   │   ├── macros-and-expressions.md
-│   │   │   ├── networking.md
-│   │   │   └── sender-interface.md
-│   │   ├── 07-Vendors/
-│   │   │   └── creating_profiles.md
-│   │   └── troubleshooting.md
+cheetah/
 ├── assets/                 # Editor frontend (vanilla HTML/CSS/JS)
 │   ├── index.html
 │   ├── css/
 │   ├── js/
 │   │   ├── app.js          # Main orchestrator
 │   │   ├── editor.js       # Textarea + syntax highlighting
-│   │   ├── filetree.js     # File tree
+│   │   ├── filetree.js     # File tree with right-click menus
 │   │   ├── markdown-parser.js  # Marked + wiki links
 │   │   ├── preview.js      # Live preview
 │   │   └── ast-editor.js   # WYSIWYG block editing
-│   └── logo.svg            # Product logo (replaceable, shown in sidebar)
 ├── tools/
 │   ├── edit-server.js      # Local Express server (port 3000)
-│   ├── build.js            # Static site generator → ./build
-│   ├── convert-admonitions.js  # One-time Docusaurus :::-to-blockquote converter
+│   ├── build.js            # Static site generator
+│   ├── convert-admonitions.js  # One-time Docusaurus converter
 │   └── fix-controller-images.js
-├── build/                  # Generated static site output
+├── content/                # Empty (placeholders — point editor to your project)
+│   └── markdown/
 ├── package.json
-└── README.md
+└── .cheetah-path           # Created on first run (stores your project path)
 ```
+
+**Your project** (separate repo or folder):
+```
+my-project/
+├── content/                # Raw source files
+│   ├── images/             # Images (logo.svg lives here)
+│   ├── videos/             # Video files
+│   ├── misc/               # PDFs, zips, etc.
+│   └── markdown/           # Markdown files
+│       ├── 01-Getting-Started/
+│       ├── 02-Core-Concepts/
+│       └── ...
+├── docs/                   # Built output (GitHub Pages ./docs)
+│   ├── index.html
+│   ├── 01-Getting-Started/
+│   ├── assets/css/site.css
+│   └── images/
+└── .gitignore
+```
+
 
 ---
 

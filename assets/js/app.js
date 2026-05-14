@@ -9,6 +9,54 @@
 
   let modalCallback = null;
 
+  // Check if content path is configured on load
+  async function checkSetup() {
+    try {
+      const res = await fetch('/api/check-setup');
+      const data = await res.json();
+      if (!data.configured) {
+        document.getElementById('setupOverlay').style.display = '';
+        document.querySelector('.app-header').style.display = 'none';
+        document.querySelector('.app-body').style.display = 'none';
+        return;
+      }
+      initEditor();
+    } catch {}
+  }
+
+  function initEditor() {
+    document.getElementById('setupOverlay').style.display = 'none';
+    document.querySelector('.app-header').style.display = '';
+    document.querySelector('.app-body').style.display = '';
+
+    fileTree.load().then(() => {
+      parser.setWikiLookup(fileTree.getWikiLookup());
+    });
+
+    connectSSE();
+  }
+
+  document.getElementById('setupConfirm').addEventListener('click', async () => {
+    const input = document.getElementById('setupPath');
+    const err = document.getElementById('setupError');
+    const path = input.value.trim();
+    if (!path) { err.textContent = 'Enter a path'; err.style.display = ''; return; }
+    try {
+      const res = await fetch('/api/setup-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      });
+      if (!res.ok) { const d = await res.json(); err.textContent = d.error || 'Failed'; err.style.display = ''; return; }
+      location.reload();
+    } catch (e) { err.textContent = 'Failed to connect'; err.style.display = ''; }
+  });
+  document.getElementById('setupPath').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('setupConfirm').click();
+  });
+
+  checkSetup();
+
   editor.onChange = (md) => {
     preview.update(md);
   };
@@ -151,10 +199,6 @@
     dialogEl('dialogConfirm').focus();
   };
 
-  fileTree.load().then(() => {
-    parser.setWikiLookup(fileTree.getWikiLookup());
-  });
-
   let eventSource = null;
   function connectSSE() {
     try {
@@ -175,7 +219,6 @@
       };
     } catch {}
   }
-  connectSSE();
 
   document.addEventListener('dragover', (e) => e.preventDefault());
   document.addEventListener('drop', (e) => {

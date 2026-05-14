@@ -5,9 +5,20 @@ const hljs = require('highlight.js');
 const grayMatter = require('gray-matter');
 
 const ROOT = path.resolve(__dirname, '..');
-const CONTENT_ROOT = path.join(ROOT, 'content');
+
+// Determine project root: --content arg > .cheetah-path > engine root
+let projectRoot = ROOT;
+const contentArg = process.argv.find(a => a.startsWith('--content='));
+if (contentArg) {
+  projectRoot = contentArg.split('=')[1];
+} else {
+  const configPath = path.join(ROOT, '.cheetah-path');
+  try { if (fs.existsSync(configPath)) projectRoot = fs.readFileSync(configPath, 'utf-8').trim(); } catch {}
+}
+
+const CONTENT_ROOT = path.join(projectRoot, 'content');
 const CONTENT = path.join(CONTENT_ROOT, 'markdown');
-const BUILD = path.join(ROOT, 'build');
+const BUILD = path.join(projectRoot, 'docs');
 
 const prefixArg = process.argv.find(a => a.startsWith('--prefix='));
 const BASE = prefixArg ? prefixArg.split('=')[1].replace(/\/+$/, '') : '';
@@ -195,7 +206,7 @@ function buildSearchIndex(files) {
       index.push({
         title,
         path: file.path,
-        url: '/' + file.path.replace(/\.md$/, '.html'),
+        url: rel('/' + file.path.replace(/\.md$/, '.html')),
         excerpt: text.substring(0, 200),
         text: text.substring(0, 1000)
       });
@@ -212,10 +223,16 @@ function copyAssets() {
   const src = path.join(CONTENT_ROOT, 'images');
   const dst = path.join(BUILD, 'images');
   if (fs.existsSync(src)) copyRecursive(src, dst);
-  const logo = path.join(ROOT, 'assets', 'logo.svg');
-  if (fs.existsSync(logo)) {
-    ensureDir(path.join(BUILD, 'assets'));
-    fs.copyFileSync(logo, path.join(BUILD, 'assets', 'logo.svg'));
+  // Copy engine site.css to docs/assets/css/
+  const cssSrc = path.join(ROOT, 'assets', 'css', 'site.css');
+  if (!fs.existsSync(cssSrc)) {
+    // Generate from SITE_CSS if the file doesn't exist
+    ensureDir(path.join(BUILD, 'assets', 'css'));
+    fs.writeFileSync(path.join(BUILD, 'assets', 'css', 'site.css'), SITE_CSS.trim());
+  } else {
+    const cssDst = path.join(BUILD, 'assets', 'css');
+    ensureDir(cssDst);
+    fs.copyFileSync(cssSrc, path.join(cssDst, 'site.css'));
   }
 }
 function copyRecursive(src, dst) {
@@ -318,7 +335,7 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 </head>
 <body>
 <aside class="sidebar">
-    <div class="sidebar-logo"><img src="${rel('/assets/logo.svg')}" alt="Logo"></div>
+    <div class="sidebar-logo"><img src="${rel('/images/logo.svg')}" alt="Logo"></div>
     <h2>Documentation</h2>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="Search docs..." autocomplete="off">
@@ -345,7 +362,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
   ).slice(0, 20);
   if (matches.length === 0) { results.classList.remove('show'); return; }
   results.innerHTML = matches.map(m =>
-    '<a href="' + rel(m.url) + '"><div class="search-title">' + m.title + '</div><div class="search-excerpt">' + m.excerpt + '</div></a>'
+    '<a href="' + m.url + '"><div class="search-title">' + m.title + '</div><div class="search-excerpt">' + m.excerpt + '</div></a>'
   ).join('');
   results.classList.add('show');
 });

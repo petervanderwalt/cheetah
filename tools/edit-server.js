@@ -6,9 +6,28 @@ const { marked } = require('marked');
 const hljs = require('highlight.js');
 
 const ROOT = path.resolve(__dirname, '..');
-const CONTENT_ROOT = path.join(ROOT, 'content');
-const DOCS_ROOT = path.join(CONTENT_ROOT, 'markdown');
+const CONFIG_PATH = path.join(ROOT, '.cheetah-path');
 const PORT = parseInt(process.env.PORT, 10) || 3000;
+
+let CONTENT_ROOT = null;
+let DOCS_ROOT = null;
+let PROJECT_ROOT = null;
+let BUILD_OUT = null;
+
+function loadConfig() {
+  if (fs.existsSync(CONFIG_PATH)) {
+    const p = fs.readFileSync(CONFIG_PATH, 'utf-8').trim();
+    if (p && fs.existsSync(path.join(p, 'content', 'markdown'))) {
+      PROJECT_ROOT = p;
+      CONTENT_ROOT = path.join(p, 'content');
+      DOCS_ROOT = path.join(CONTENT_ROOT, 'markdown');
+      BUILD_OUT = path.join(p, 'docs');
+      return true;
+    }
+  }
+  return false;
+}
+const configured = loadConfig();
 
 marked.setOptions({
   breaks: false,
@@ -59,11 +78,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/assets', express.static(path.join(ROOT, 'assets')));
-app.use('/images', express.static(path.join(CONTENT_ROOT, 'images')));
-app.use('/videos', express.static(path.join(CONTENT_ROOT, 'videos')));
-app.use('/misc', express.static(path.join(CONTENT_ROOT, 'misc')));
-app.use('/build', express.static(path.join(ROOT, 'build')));
-app.use('/docs', express.static(DOCS_ROOT, { index: false }));
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
@@ -71,64 +85,74 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(ROOT, 'assets', 'index.html'));
 });
 
-// Preview: serve build output at root so root-relative links work
-app.use(express.static(path.join(ROOT, 'build')));
+// Setup API: check if content path is configured
+app.get('/api/check-setup', (req, res) => {
+  res.json({ configured: !!PROJECT_ROOT, path: PROJECT_ROOT || null });
+});
 
-function parseFrontmatter(content) {
-  let order = null;
-  if (!content) return { order };
-  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (fmMatch) {
-    const fm = fmMatch[1];
-    const o = fm.match(/^order:\s*(\d+)\s*$/m);
-    if (o) order = parseInt(o[1], 10);
-  }
-  return { order };
+// Setup API: save content path
+app.post('/api/setup-path', (req, res) => {
+  const p = req.body && req.body.path;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  const testDir = path.join(p, 'content', 'markdown');
+  if (!fs.existsSync(testDir)) return res.status(400).json({ error: 'path must contain content/markdown/' });
+  try {
+    fs.writeFileSync(CONFIG_PATH, p, 'utf-8');
+    PROJECT_ROOT = p;
+    CONTENT_ROOT = path.join(p, 'content');
+    DOCS_ROOT = path.join(CONTENT_ROOT, 'markdown');
+    BUILD_OUT = path.join(p, 'docs');
+    setupContentRoutes();
+    setupWatcher();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Setup API: get content path for logo serving
+app.get('/api/content-logo', (req, res) => {
+  if (!PROJECT_ROOT) return res.status(404).end();
+  const logoPath = path.join(CONTENT_ROOT, 'images', 'logo.svg');
+  if (fs.existsSync(logoPath)) res.sendFile(logoPath);
+  else res.status(404).end();
+});
+
+function setupContentRoutes() {
+  if (!CONTENT_ROOT) return;
+  app.use('/images', express.static(path.join(CONTENT_ROOT, 'images')));
+  app.use('/videos', express.static(path.join(CONTENT_ROOT, 'videos')));
+  app.use('/misc', express.static(path.join(CONTENT_ROOT, 'misc')));
+  app.use('/docs', express.static(DOCS_ROOT, { index: false }));
 }
 
-function getSortKey(name, order) {
-  if (order != null) return order;
-  const m = name.match(/^(\d+)/);
-  return m ? parseInt(m[1], 10) : 999;
-}
-
-function sortEntries(arr) {
-  arr.sort((a, b) => {
-    const ka = a._sortKey != null ? a._sortKey : getSortKey(a.name, a.order);
-    const kb = b._sortKey != null ? b._sortKey : getSortKey(b.name, b.order);
-    if (ka !== kb) return ka - kb;
-    return a.name.localeCompare(b.name);
+function setupWatcher() {
+  if (!DOCS_ROOT) return;
+  if (global._watcher) global._watcher.close();
+  global._watcher = chokidar.watch(DOCS_ROOT, {
+    ignored: /(node_modules|\.git|build|tools|\.(?!md))/,
+    persistent: true,
+    ignoreInitial: true
   });
-  arr.forEach(item => delete item._sortKey);
+  global._watcher.on('all', (event, filePath) => {
+    const relPath = path.relative(DOCS_ROOT, filePath).replace(/\\/g, '/');
+    const msg = JSON.stringify({ type: 'filechange', event, path: relPath });
+    for (const client of clients) {
+      client.write(`data: ${msg}\n\n`);
+    }
+  });
 }
 
-function buildFileTree(dir, relativePath) {
-  const result = [];
-  let entries;
-  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
-  catch { return result; }
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'tools' || entry.name === 'build' || entry.name === 'README.md') continue;
-    const fullPath = path.join(dir, entry.name);
-    const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) {
-      const children = buildFileTree(fullPath, relPath);
-      const item = { name: entry.name, path: relPath, type: 'directory', order: null, children };
-      const numMatch = entry.name.match(/^(\d+)/);
-      item._sortKey = numMatch ? parseInt(numMatch[1], 10) : 999;
-      result.push(item);
-    } else if (entry.name.endsWith('.md')) {
-      let order = null;
-      try {
-        const content = fs.readFileSync(fullPath, 'utf-8');
-        order = parseFrontmatter(content).order;
-      } catch {}
-      result.push({ name: entry.name, path: relPath, type: 'file', order, _sortKey: getSortKey(entry.name, order) });
-    }
-  }
-  sortEntries(result);
-  return result;
+if (configured) {
+  setupContentRoutes();
+  setupWatcher();
 }
+
+function requireContent(req, res, next) {
+  if (!DOCS_ROOT) return res.status(400).json({ error: 'no content path configured' });
+  next();
+}
+
+// All /api/* routes except setup need content configured
+app.use(/^\/api\/(?!check-setup|setup-path|content-logo|events).*/, requireContent);
 
 app.get('/api/tree', (req, res) => {
   const tree = buildFileTree(DOCS_ROOT, '');
@@ -341,7 +365,7 @@ app.post('/api/move', (req, res) => {
   }
 });
 
-const TRASH_ROOT = path.join(CONTENT_ROOT, 'trash');
+const getTrash = () => CONTENT_ROOT ? path.join(CONTENT_ROOT, 'trash') : null;
 app.post('/api/delete', (req, res) => {
   const { path: itemPath } = req.body;
   if (!itemPath) return res.status(400).json({ error: 'path required' });
@@ -358,10 +382,12 @@ app.post('/api/delete', (req, res) => {
     }
   } catch (e) { return res.status(500).json({ error: e.message }); }
   try {
-    if (!fs.existsSync(TRASH_ROOT)) fs.mkdirSync(TRASH_ROOT, { recursive: true });
+    const trash = getTrash();
+    if (!trash) return res.status(400).json({ error: 'no content path' });
+    if (!fs.existsSync(trash)) fs.mkdirSync(trash, { recursive: true });
     const ts = Date.now();
     const trashName = path.basename(itemPath) + '.' + ts;
-    const trashPath = path.join(TRASH_ROOT, trashName);
+    const trashPath = path.join(trash, trashName);
     fs.renameSync(fullPath, trashPath);
     res.json({ ok: true, trash: trashName });
   } catch (e) {
@@ -370,12 +396,13 @@ app.post('/api/delete', (req, res) => {
 });
 
 app.post('/api/deploy', (req, res) => {
+  if (!PROJECT_ROOT) return res.status(400).json({ error: 'no content path configured' });
   const buildScript = path.join(ROOT, 'tools', 'build.js');
   try {
     const { execSync } = require('child_process');
     const prefix = req.body && req.body.prefix ? ` --prefix=${req.body.prefix}` : '';
-    execSync(`node "${buildScript}"${prefix}`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
-    res.json({ ok: true });
+    execSync(`node "${buildScript}" --content="${PROJECT_ROOT}"${prefix}`, { cwd: ROOT, stdio: 'pipe', timeout: 30000 });
+    res.json({ ok: true, output: BUILD_OUT });
   } catch (e) {
     res.status(500).json({ error: e.message || 'Build failed' });
   }
@@ -395,19 +422,6 @@ app.get('/api/events', (req, res) => {
     const idx = clients.indexOf(res);
     if (idx >= 0) clients.splice(idx, 1);
   });
-});
-
-const watcher = chokidar.watch(DOCS_ROOT, {
-  ignored: /(node_modules|\.git|build|tools|\.(?!md))/,
-  persistent: true,
-  ignoreInitial: true
-});
-watcher.on('all', (event, filePath) => {
-  const relPath = path.relative(DOCS_ROOT, filePath).replace(/\\/g, '/');
-  const msg = JSON.stringify({ type: 'filechange', event, path: relPath });
-  for (const client of clients) {
-    client.write(`data: ${msg}\n\n`);
-  }
 });
 
 const { execSync } = require('child_process');

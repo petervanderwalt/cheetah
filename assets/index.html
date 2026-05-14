@@ -18,7 +18,7 @@
 <input type="file" id="imageInput" accept="image/*" style="display:none">
 <div class="app-body">
   <div class="sidebar" id="sidebar">
-    <div class="sidebar-logo"><img src="/assets/logo.svg" alt="Logo"></div>
+    <div class="sidebar-logo"><img src="/api/content-logo" alt="Logo"></div>
     <div class="file-tree" id="fileTree"></div>
   </div>
   <div class="editor-pane" id="editorPane">
@@ -67,6 +67,19 @@
         <div class="icon">&#x1f4d6;</div>
         <div class="text">Select a file to preview</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-card">
+    <div class="setup-icon">&#x1f4dd;</div>
+    <h2>Welcome to Docs Editor</h2>
+    <p>Point it to your project folder containing <code>content/markdown/</code></p>
+    <input class="setup-input" id="setupPath" placeholder="e.g. C:\Users\you\my-docs or ../my-project">
+    <div class="setup-error" id="setupError"></div>
+    <div class="setup-footer">
+      <button class="btn btn-primary" id="setupConfirm">Set path</button>
     </div>
   </div>
 </div>
