@@ -62,7 +62,7 @@ cheetah is a lightweight, filesystem-native Markdown documentation editor and st
 | Image/video insertion | **Yes** | Yes | Yes |
 | File ordering (frontmatter) | **Yes** | Filename only | Sort UI |
 | Offline | **Yes** | Yes | No |
-| FTP deploy | **Yes** | Yes | No |
+| FTP / GitHub Pages deploy | **Yes** | Yes | No |
 | npm dependencies | **5** | 1000+ | 500+ |
 | Tax on a 2015 laptop | None | Yes | Yes |
 
@@ -70,15 +70,33 @@ cheetah is a lightweight, filesystem-native Markdown documentation editor and st
 
 ## Quick start
 
-
-
 ```bash
-# In your docs folder:
+# 1. Clone the engine
+git clone https://github.com/petervanderwalt/cheetah.git
+cd cheetah
 npm install
+
+# 2. Start the editor
 npm run edit
-# Opens editor at http://localhost:3000
-# First run: point it to your project folder (the one with content/markdown/)
+# Opens http://localhost:3000
 ```
+
+**On first run**, the editor asks for your project path. Point it to a folder with this structure:
+```
+my-project/
+├── content/
+│   ├── images/           # logo.svg, controller photos, etc.
+│   ├── videos/
+│   ├── misc/
+│   └── markdown/         # Your .md files in numbered folders
+└── docs/                 # Will be created by Deploy
+```
+
+**Then:**
+- Edit markdown files in the editor
+- Click **Deploy** → enter base path (e.g. `/repo-name` for GitHub Pages, or leave empty for root-level FTP)
+- Built site goes to `docs/` in your project
+- Push your project repo and enable GitHub Pages → **Deploy from branch: main, folder: /docs**
 
 ```bash
 # Build static site:
@@ -106,7 +124,7 @@ The editor gives you:
 - A live rendered preview pane that updates as you type
 - **WYSIWYG block editing** — double-click any rendered block to edit inline, markdown updates in real-time
 - **Full formatting toolbar** — Bold, Italic, Heading, Link, Inline Code, Fenced Code, Blockquote, Bullet List, Numbered List, Horizontal Rule, Table, Admonitions (Note/Tip/Warning/Danger/Info), Image upload, Video embed
-- Drag-and-drop images (auto-upload to `content/assets/img/`)
+- Drag-and-drop images (auto-upload to `content/images/`)
 - Create new pages and sections with ordering (frontmatter `order:` field)
 - Wiki links `[[Page Name]]` resolved by title, filename, or path
 - Autosave, keyboard shortcuts (Ctrl+S, Tab to indent, Ctrl+F for find)
