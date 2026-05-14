@@ -54,7 +54,6 @@ cheetah is a lightweight, filesystem-native Markdown documentation editor and st
 | Git-friendly diffs | **Yes** | Mostly | No |
 | Zero database | **Yes** | Yes | No |
 | Live preview editor | **Yes** | Yes | Yes |
-| Editable rendered blocks | **Yes** | No | No |
 | Wiki links [[like this]] | **Yes** | Plugin | Yes |
 | Markdown callout blocks (pure markdown) | **Yes** | Plugin | Plugin |
 | Click-to-copy code | **Yes** | Yes | Yes |
@@ -76,9 +75,12 @@ git clone https://github.com/petervanderwalt/cheetah.git
 cd cheetah
 npm install
 
-# 2. Start the editor
+# 2. Clone (or fork) a documentation repo, for example:
+git clone https://github.com/petervanderwalt/grblhal_docs.git
+
+# 3. Start the editor
 npm run edit
-# Opens http://localhost:3000
+# Opens http://localhost:3000 — on first run, point it to the docs repo you cloned
 ```
 
 **On first run**, the editor asks for your project path. Point it to a folder with this structure:
@@ -122,12 +124,11 @@ The editor gives you:
 - A file tree (click to open, +Page/+Folder to create)
 - A Markdown source pane with syntax highlighting (overlay technique)
 - A live rendered preview pane that updates as you type
-- **WYSIWYG block editing** — double-click any rendered block to edit inline, markdown updates in real-time
 - **Full formatting toolbar** — Bold, Italic, Heading, Link, Inline Code, Fenced Code, Blockquote, Bullet List, Numbered List, Horizontal Rule, Table, Admonitions (Note/Tip/Warning/Danger/Info), Image upload, Video embed
 - Drag-and-drop images (auto-upload to `content/images/`)
 - Create new pages and sections with ordering (frontmatter `order:` field)
-- Wiki links `[[Page Name]]` resolved by title, filename, or path
-- Autosave, keyboard shortcuts (Ctrl+S, Tab to indent, Ctrl+F for find)
+- Wiki links `[[Page Name]]` resolved by filename and path
+- Autosave, keyboard shortcuts (Ctrl+S, Tab to indent)
 - File watching — external edits auto-refresh
 
 The build gives you:
@@ -154,7 +155,6 @@ cheetah/
 │   │   ├── filetree.js     # File tree with right-click menus
 │   │   ├── markdown-parser.js  # Marked + wiki links
 │   │   ├── preview.js      # Live preview
-│   │   └── ast-editor.js   # WYSIWYG block editing
 ├── tools/
 │   ├── edit-server.js      # Local Express server (port 3000)
 │   ├── build.js            # Static site generator
