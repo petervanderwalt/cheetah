@@ -77,6 +77,8 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+const clients = [];
+
 app.use('/assets', express.static(path.join(ROOT, 'assets')));
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
@@ -144,6 +146,62 @@ function setupWatcher() {
 if (configured) {
   setupContentRoutes();
   setupWatcher();
+}
+
+function parseFrontmatter(content) {
+  let order = null;
+  if (!content) return { order };
+  const fmMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (fmMatch) {
+    const fm = fmMatch[1];
+    const o = fm.match(/^order:\s*(\d+)\s*$/m);
+    if (o) order = parseInt(o[1], 10);
+  }
+  return { order };
+}
+
+function getSortKey(name, order) {
+  if (order != null) return order;
+  const m = name.match(/^(\d+)/);
+  return m ? parseInt(m[1], 10) : 999;
+}
+
+function sortEntries(arr) {
+  arr.sort((a, b) => {
+    const ka = a._sortKey != null ? a._sortKey : getSortKey(a.name, a.order);
+    const kb = b._sortKey != null ? b._sortKey : getSortKey(b.name, b.order);
+    if (ka !== kb) return ka - kb;
+    return a.name.localeCompare(b.name);
+  });
+  arr.forEach(item => delete item._sortKey);
+}
+
+function buildFileTree(dir, relativePath) {
+  const result = [];
+  let entries;
+  try { entries = fs.readdirSync(dir, { withFileTypes: true }); }
+  catch { return result; }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'tools' || entry.name === 'README.md') continue;
+    const fullPath = path.join(dir, entry.name);
+    const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      const children = buildFileTree(fullPath, relPath);
+      const item = { name: entry.name, path: relPath, type: 'directory', order: null, children };
+      const numMatch = entry.name.match(/^(\d+)/);
+      item._sortKey = numMatch ? parseInt(numMatch[1], 10) : 999;
+      result.push(item);
+    } else if (entry.name.endsWith('.md')) {
+      let order = null;
+      try {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        order = parseFrontmatter(content).order;
+      } catch {}
+      result.push({ name: entry.name, path: relPath, type: 'file', order, _sortKey: getSortKey(entry.name, order) });
+    }
+  }
+  sortEntries(result);
+  return result;
 }
 
 function requireContent(req, res, next) {
@@ -408,7 +466,6 @@ app.post('/api/deploy', (req, res) => {
   }
 });
 
-const clients = [];
 app.get('/api/events', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',

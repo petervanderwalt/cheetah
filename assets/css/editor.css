@@ -84,7 +84,7 @@ body { font-family: var(--font-sans); background: var(--bg); color: var(--text);
 .file-tree .tree-item .chevron { width: 14px; text-align: center; flex-shrink: 0; font-size: 0.65rem; transition: transform 0.15s; }
 .file-tree .tree-item .chevron.open { transform: rotate(90deg); }
 .file-tree .nested { display: none; padding-left: 12px; list-style: none; }
-.file-tree .nested.open { display: block; }
+.file-tree .nested.open { display: block !important; }
 .file-tree .folder-label { font-weight: 700; color: var(--text); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px 4px; }
 
 .editor-pane {
