@@ -90,7 +90,7 @@ marked.use({ extensions: [admonitionExtension, wikiLinkExtension] });
 const tocRenderer = new marked.Renderer();
 
 tocRenderer.heading = function(text, level) {
-  const id = slugify(text.replace(/<[^>]*>/g, ''));
+  const id = slugify(normalizeHeadingText(text));
   return `<h${level} id="${id}"><a class="anchor" href="#${id}" aria-hidden="true"></a>${text}</h${level}>`;
 };
 
@@ -101,8 +101,8 @@ function extractToc(md) {
   while ((m = regex.exec(md)) !== null) {
     const level = m[1].length;
     if (level !== 2) continue;
-    const text = m[2].replace(/[#*`\[\]]/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').trim();
-    const textPlain = text.replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    const text = m[2].replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[#*`]/g, '').trim();
+    const textPlain = normalizeHeadingText(text);
     const id = slugify(textPlain);
     headings.push({ text: textPlain, level, id });
   }
@@ -120,13 +120,47 @@ function renderToc(headings) {
 }
 
 function slugify(text) {
-  return text.toString().toLowerCase().trim()
+  return normalizeHeadingText(text).toLowerCase().trim()
     .replace(/&/g, '-and-')
+    .replace(/[–—]/g, '-')
     .replace(/[\s]+/g, '-')
     .replace(/[^\w\-]+/g, '')
     .replace(/\-\-+/g, '-')
     .replace(/^-+/, '')
     .replace(/-+$/, '');
+}
+
+function normalizeHeadingText(text) {
+  return decodeHtmlEntities(
+    text
+      .toString()
+      .replace(/<[^>]*>/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[`*_#]/g, '')
+  )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function decodeHtmlEntities(text) {
+  return text
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&nbsp;/gi, ' ');
+}
+
+function toTitleCase(text) {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => {
+      if (/^[A-Z0-9]+$/.test(word) || /^[a-z]+[A-Z][A-Za-z0-9]*$/.test(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
 }
 
 function getSortKey(name, order) {
@@ -174,13 +208,13 @@ function buildNavTree(dir, relativePath, currentPath) {
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
       const children = buildNavTree(fullPath, relPath, currentPath);
-      const dirTitle = entry.name.replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
+      const dirTitle = toTitleCase(entry.name.replace(/^\d+-/, '').replace(/[-_]/g, ' '));
       if (children.length > 0) {
         const numMatch = entry.name.match(/^(\d+)/);
         items.push({ name: entry.name, title: dirTitle, path: relPath, type: 'directory', children, _sortKey: numMatch ? parseInt(numMatch[1], 10) : 999 });
       }
     } else if (entry.name.endsWith('.md')) {
-      let title = entry.name.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase();
+      let title = toTitleCase(entry.name.replace(/\.md$/, '').replace(/^\d+-/, '').replace(/[-_]/g, ' '));
       let order = null;
       try {
         const content = fs.readFileSync(fullPath, 'utf-8');
@@ -202,7 +236,7 @@ function buildSearchIndex(files) {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
       const text = (parsed.content || content).replace(/[#*`\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
-      const title = file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' ').toUpperCase();
+      const title = toTitleCase(file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' '));
       index.push({
         title,
         path: file.path,
@@ -251,6 +285,7 @@ const SITE_CSS = `
 :root{--bg:#fbfffe;--bg-alt:#f5f4f6;--text:#1b1b1e;--text-light:#6d676e;--border:#ddd8dc;--accent:#f90000;--accent-hover:#d00000;--code-bg:#f0f0f4;--sidebar-width:280px}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;color:var(--text);line-height:1.7;background:var(--bg);display:flex;min-height:100vh}
 .sidebar{width:var(--sidebar-width);background:var(--bg-alt);border-right:1px solid var(--border);padding:1.5rem;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;flex-shrink:0}
+.mobile-topbar,.sidebar-backdrop{display:none}
 .sidebar-logo{text-align:center;margin-bottom:1rem}
 .sidebar-logo img{max-width:120px;height:auto;display:inline-block}
 .sidebar h2{font-size:1.1rem;margin-bottom:1rem;color:var(--accent)}
@@ -259,7 +294,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 .sidebar .nav-tree a{display:block;padding:4px 8px;color:var(--text);text-decoration:none;border-radius:4px;transition:background .15s}
 .sidebar .nav-tree a:hover{background:var(--border)}
 .sidebar .nav-tree a.active{background:var(--accent);color:#fff}
-.sidebar .nav-tree .folder-label{padding:4px 8px;font-weight:700;color:var(--text);font-size:0.85rem;text-transform:uppercase;letter-spacing:.5px}
+.sidebar .nav-tree .folder-label{padding:4px 8px;font-weight:700;color:var(--text);font-size:0.9rem}
 .sidebar .nav-tree .nested{padding-left:1rem;list-style:none}
 .main{margin-left:var(--sidebar-width);flex:1;padding:2rem 3rem;min-width:0}
 .main h1{margin-bottom:0.5rem;color:var(--text)}
@@ -315,10 +350,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubunt
 .toc-h3 a{padding-left:24px}
 @media(max-width:1024px){.toc{display:none}}
 @media(max-width:768px){
-  body{flex-direction:column}
-  .sidebar{position:static;width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:300px;overflow-y:auto}
-  .main{margin-left:0;padding:1rem}
+  body{display:block}
+  .mobile-topbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;z-index:30;padding:0.9rem 1rem;background:rgba(251,255,254,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+  .mobile-topbar button{border:1px solid var(--border);background:#fff;color:var(--text);border-radius:999px;padding:0.55rem 0.9rem;font:inherit;font-weight:600}
+  .mobile-topbar .mobile-title{font-size:0.95rem;font-weight:700;color:var(--text)}
+  .sidebar{width:min(86vw,320px);max-width:320px;border-right:1px solid var(--border);transform:translateX(-100%);transition:transform .2s ease;z-index:40;box-shadow:0 12px 30px rgba(0,0,0,0.12)}
+  body.nav-open .sidebar{transform:translateX(0)}
+  .sidebar-backdrop{position:fixed;inset:0;background:rgba(27,27,30,0.35);z-index:35}
+  body.nav-open .sidebar-backdrop{display:block}
+  .main{margin-left:0;padding:1rem 1rem 2rem}
   .content-wrap{flex-direction:column;gap:1rem}
+  .search-results{width:100%}
+  .main .anchor{display:none}
+  .main table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 `;
 
@@ -334,6 +378,11 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 </head>
 <body>
+<div class="mobile-topbar">
+  <button type="button" id="navToggle" aria-expanded="false" aria-controls="sidebarNav">Menu</button>
+  <div class="mobile-title">${title}</div>
+</div>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 <aside class="sidebar">
     <div class="sidebar-logo"><img src="${rel('/images/logo.svg')}" alt="Logo"></div>
     <h2>Documentation</h2>
@@ -341,7 +390,7 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
     <input type="text" id="searchInput" placeholder="Search docs..." autocomplete="off">
     <div class="search-results" id="searchResults"></div>
   </div>
-  <nav>${renderNav(navTree, currentPath)}</nav>
+  <nav id="sidebarNav">${renderNav(navTree, currentPath)}</nav>
 </aside>
 <main class="main">
   <div class="content-wrap">
@@ -353,6 +402,23 @@ function renderPage(title, contentHtml, navTree, currentPath, searchIndex, tocHt
 </main>
 <script>
 const searchIndex = ${searchJson};
+const navToggle = document.getElementById('navToggle');
+const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+function closeNav() {
+  document.body.classList.remove('nav-open');
+  if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
+}
+function openNav() {
+  document.body.classList.add('nav-open');
+  if (navToggle) navToggle.setAttribute('aria-expanded', 'true');
+}
+if (navToggle) {
+  navToggle.addEventListener('click', function() {
+    if (document.body.classList.contains('nav-open')) closeNav();
+    else openNav();
+  });
+}
+if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeNav);
 document.getElementById('searchInput').addEventListener('input', function() {
   const q = this.value.toLowerCase().trim();
   const results = document.getElementById('searchResults');
@@ -368,6 +434,9 @@ document.getElementById('searchInput').addEventListener('input', function() {
 });
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.search-box')) document.getElementById('searchResults').classList.remove('show');
+});
+document.querySelectorAll('.sidebar a').forEach(function(link) {
+  link.addEventListener('click', closeNav);
 });
 // Copy buttons for code blocks
 document.querySelectorAll('.main pre').forEach(function(pre) {
@@ -458,7 +527,7 @@ function generateSite() {
     try {
       const content = fs.readFileSync(file.fullPath, 'utf-8');
       const parsed = grayMatter(content);
-      const title = file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' ').toUpperCase();
+      const title = toTitleCase(file.path.replace(/\.md$/, '').replace(/(^|\/)\d+-/g, '$1').replace(/\//g, ': ').replace(/[-_]/g, ' '));
       const toc = extractToc(parsed.content);
       const tocHtml = renderToc(toc);
       const htmlContent = marked.parse(parsed.content, { renderer: tocRenderer });
