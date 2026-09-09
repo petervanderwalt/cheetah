@@ -13,24 +13,53 @@ class Editor {
     this.autosaveTimer = null;
     this.tabs = [];
     this.activeTab = null;
+    this.wrapper = this.textarea.closest('.editor-wrapper');
 
     this.setupEvents();
   }
 
   setupEvents() {
+    this.textarea.addEventListener('mousedown', () => {
+      // Align the hit-test surface before the browser computes the caret
+      // position from the mouse coordinates.
+      this.textarea.scrollTop = this.highlight.scrollTop;
+      this.textarea.scrollLeft = this.highlight.scrollLeft;
+    });
+    this.textarea.addEventListener('focus', () => {
+      this.wrapper?.classList.add('is-editing');
+      // Click/caret hit-testing must use the same raw text layout as the
+      // textarea. Highlight spans can change wrapping and shift the caret.
+      this.highlight.textContent = this.textarea.value;
+      this.highlight.scrollTop = this.textarea.scrollTop;
+      this.highlight.scrollLeft = this.textarea.scrollLeft;
+    });
+    this.textarea.addEventListener('blur', () => {
+      this.wrapper?.classList.remove('is-editing');
+      this.onBlur?.();
+    });
+
     this.textarea.addEventListener('scroll', () => {
       this.highlight.scrollTop = this.textarea.scrollTop;
       this.highlight.scrollLeft = this.textarea.scrollLeft;
-      if (this.onScroll) this.onScroll(this.getScrollPct());
+      if (this.onScroll) this.onScroll(this.getTopVisibleLine());
     });
 
+    const notifyCursorMove = () => this.onCursorMove?.(this.getCaretLine());
+    this.textarea.addEventListener('click', notifyCursorMove);
+    this.textarea.addEventListener('keyup', notifyCursorMove);
+    this.textarea.addEventListener('select', notifyCursorMove);
+
     this.textarea.addEventListener('input', () => {
+      this.wrapper?.classList.add('is-editing');
       this.content = this.textarea.value;
       this.dirty = this.content !== this.savedContent;
-      this.updateHighlight();
+      // While focused, mirror the raw source directly so input is always
+      // visible even if syntax highlighting is delayed by the browser.
+      this.highlight.textContent = this.content;
       this.updateStatus();
       this.scheduleAutosave();
       if (this.onChange) this.onChange(this.content);
+      notifyCursorMove();
     });
 
     this.textarea.addEventListener('keydown', (e) => {
@@ -74,6 +103,15 @@ class Editor {
       this.dirty = false;
       this.textarea.value = this.content;
       this.textarea.disabled = false;
+      // Opening another file must start both panes at its first Markdown
+      // block. This is intentionally synchronous: delayed resets steal a
+      // caret placement made by the user after the file becomes visible.
+      this.textarea.scrollTop = 0;
+      this.textarea.scrollLeft = 0;
+      this.highlight.scrollTop = 0;
+      this.highlight.scrollLeft = 0;
+      this.textarea.selectionStart = 0;
+      this.textarea.selectionEnd = 0;
       this.filePathEl.textContent = path;
       this.updateHighlight();
       this.updateStatus();
@@ -81,16 +119,6 @@ class Editor {
       this.addTab(path);
       if (this.onChange) this.onChange(this.content);
       this.textarea.focus({preventScroll: true});
-      requestAnimationFrame(() => {
-        this.textarea.scrollTop = 0;
-        this.textarea.selectionStart = 0;
-        this.textarea.selectionEnd = 0;
-        requestAnimationFrame(() => {
-          this.textarea.scrollTop = 0;
-          this.textarea.selectionStart = 0;
-          this.textarea.selectionEnd = 0;
-        });
-      });
     } catch (e) {
       this.setStatus('error', 'Failed to load file');
     }
@@ -148,6 +176,27 @@ class Editor {
     const el = this.textarea;
     const maxScroll = el.scrollHeight - el.clientHeight;
     return maxScroll > 0 ? el.scrollTop / maxScroll : 0;
+  }
+
+  getCaretLine() {
+    return this.textarea.value.slice(0, this.textarea.selectionStart).split('\n').length - 1;
+  }
+
+  getTopVisibleLine() {
+    const style = getComputedStyle(this.textarea);
+    const lineHeight = parseFloat(style.lineHeight) || 22;
+    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const charWidth = parseFloat(style.fontSize) * 0.6;
+    const charsPerRow = Math.max(1, Math.floor((this.textarea.clientWidth - padding) / charWidth));
+    let row = 0;
+    const targetRow = Math.floor(this.textarea.scrollTop / lineHeight);
+    const lines = this.textarea.value.split('\n');
+    for (let line = 0; line < lines.length; line++) {
+      const rows = Math.max(1, Math.ceil(lines[line].length / charsPerRow));
+      if (row + rows > targetRow) return line;
+      row += rows;
+    }
+    return lines.length - 1;
   }
 
   scrollToPct(pct) {

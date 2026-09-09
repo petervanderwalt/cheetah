@@ -16,11 +16,36 @@ class Preview {
     }
     try {
       const html = this.parser.parse(markdown);
+      if (!html || !html.trim()) {
+        this.container.textContent = markdown;
+        return;
+      }
       this.container.innerHTML = html;
       this.highlightCode();
     } catch (e) {
       this.container.innerHTML = `<div style="color:var(--error)">Render error: ${e.message}</div>`;
     }
+  }
+
+  scrollToLine(lineNum, { highlight = false } = {}) {
+    const block = this.getBlockAtLine(lineNum);
+    if (!block) return;
+    this.container.scrollTop = Math.max(0, block.offsetTop - this.container.clientHeight * 0.22);
+    if (!highlight) return;
+    this.clearCursorContext();
+    block.classList.add('cursor-context');
+    const caret = document.createElement('span');
+    caret.className = 'preview-caret';
+    caret.setAttribute('aria-hidden', 'true');
+    block.appendChild(caret);
+    this.cursorBlock = block;
+  }
+
+  clearCursorContext() {
+    if (!this.cursorBlock) return;
+    this.cursorBlock.classList.remove('cursor-context');
+    this.cursorBlock.querySelector('.preview-caret')?.remove();
+    this.cursorBlock = null;
   }
 
   updateWithBlocks(markdown) {

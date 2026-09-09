@@ -80,24 +80,26 @@ class MarkdownParser {
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i];
       if (token.type === 'space') continue;
+      const tokenRaw = typeof token.raw === 'string' ? token.raw : String(token.raw || '');
 
-      const rawStart = md.indexOf(token.raw, mdPos);
+      const rawStart = md.indexOf(tokenRaw, mdPos);
       let lineStart = 0, lineEnd = 0;
 
       if (rawStart >= 0) {
         const beforeRaw = md.substring(0, rawStart);
         lineStart = beforeRaw.split('\n').length - 1;
-        lineEnd = lineStart + token.raw.split('\n').length - 1;
-        mdPos = rawStart + token.raw.length;
+        lineEnd = lineStart + tokenRaw.split('\n').length - 1;
+        mdPos = rawStart + tokenRaw.length;
       } else {
-        mdPos = md.indexOf(token.raw, mdPos + 1);
+        mdPos = md.indexOf(tokenRaw, mdPos + 1);
         if (mdPos < 0) mdPos = md.length;
         continue;
       }
 
-      const tokenHtml = marked.Renderer.prototype[token.type]
-        ? marked.Renderer.prototype[token.type].call(this.renderer, token)
-        : this.parser.parse([token]);
+      // Re-parse the token source as Markdown. Renderer methods accept
+      // individual positional arguments, not a token object; calling them
+      // directly breaks tables and other structured token types.
+      const tokenHtml = this.parse(tokenRaw);
 
       // Map known types to edit-friendly categories
       let editType = 'text';
@@ -106,7 +108,7 @@ class MarkdownParser {
       else if (token.type === 'table') editType = 'table';
       else if (token.type === 'admonition') editType = 'admonition';
 
-      html += `<div class="editable-block" data-md-type="${editType}" data-md-line-start="${lineStart}" data-md-line-end="${lineEnd}" data-md-raw="${this.escapeAttr(token.raw)}">${tokenHtml}</div>\n`;
+      html += `<div class="editable-block" data-md-type="${editType}" data-md-line-start="${lineStart}" data-md-line-end="${lineEnd}" data-md-raw="${this.escapeAttr(tokenRaw)}">${tokenHtml}</div>\n`;
     }
 
     return html;

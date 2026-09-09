@@ -59,21 +59,16 @@
 
   editor.onChange = (md) => {
     preview.update(md);
+    preview.scrollToLine(editor.getCaretLine(), { highlight: true });
   };
 
-  let scrollSyncing = false;
-  editor.onScroll = (pct) => {
-    if (scrollSyncing) return;
-    scrollSyncing = true;
-    preview.scrollToPct(pct);
-    requestAnimationFrame(() => { scrollSyncing = false; });
+  editor.onCursorMove = (line) => {
+    preview.scrollToLine(line, { highlight: true });
   };
-  preview.onScroll = (pct) => {
-    if (scrollSyncing) return;
-    scrollSyncing = true;
-    editor.scrollToPct(pct);
-    requestAnimationFrame(() => { scrollSyncing = false; });
+  editor.onScroll = (line) => {
+    preview.scrollToLine(line);
   };
+  editor.onBlur = () => preview.clearCursorContext();
 
   editor.onTabSelect = (path) => {
     currentFilePath = path;
