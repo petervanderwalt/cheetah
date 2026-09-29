@@ -424,7 +424,7 @@ G65 P5 Q0
 ---
 
 ## Template Plugins
-These plugins are available as templates in the **[grblHAL Web Builder](https://webbuilder.grblhal.org/)** under `3rd party plugins`. They are designed to be starting points for custom functionality but often provide useful features out-of-the-box.
+These plugins are available as templates in the **[grblHAL Web Builder](http://svn.io-engineering.com:8080/)** under `3rd party plugins`. They are designed to be starting points for custom functionality but often provide useful features out-of-the-box.
 Github Repository: https://github.com/grblHAL/Templates
 
 ### FluidNC WebUI Support (`FluidNC_ESP3D_cmd`)
