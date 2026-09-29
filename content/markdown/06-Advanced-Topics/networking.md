@@ -80,7 +80,7 @@ The WebUI is surprisingly powerful and includes:
 *   **Camera Support:** View a stream from an ESP32-CAM or similar URL.
 
 ### Installation & Compatibility
-*   **Build Option:** The WebUI must be enabled at compile time (or selected in the **[Web Builder](http://svn.io-engineering.com:8080/)**).
+*   **Build Option:** The WebUI must be enabled at compile time (or selected in the **[Web Builder](https://webbuilder.grblhal.org/)**).
 *   **File Storage:**
     *   **FlashFS (Recommended):** The WebUI files (`index.html.gz`, etc.) are compressed and stored in the controller's internal flash memory. This is faster and doesn't require an SD card for the UI itself.
     *   **SD Card:** On some older or memory-constrained builds, you may need to copy the `index.html.gz` file to the root of your SD card.
